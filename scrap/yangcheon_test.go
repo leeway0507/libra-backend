@@ -1,4 +1,4 @@
-package lib_scrap
+package scrap
 
 import (
 	"log"
@@ -7,14 +7,15 @@ import (
 
 func TestYancheon(t *testing.T) {
 	isbn := "8970126740"
-	e := NewYangcheon(isbn)
+	y := NewYangcheon(isbn)
+	l := NewLocalTest(y)
 
 	t.Run("request isbn", func(t *testing.T) {
-		e.saveReqToLocal()
+		l.SaveReqToLocal()
 	})
 
 	t.Run("load body", func(t *testing.T) {
-		r := e.ExtractDataFromLocal()
+		r := l.ExtractDataFromLocal()
 		log.Printf("r: %#+v\n", r)
 	})
 

@@ -1,4 +1,4 @@
-package lib_scrap
+package scrap
 
 import (
 	"io"
@@ -6,25 +6,25 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
 type yangcheon struct {
-	isbn    string
-	libType string
+	model.Lib
 }
 
-func NewYangcheon(isbn string) *yangcheon {
+func NewYangcheon(isbn string) model.LibScrap {
 	return &yangcheon{
-		isbn:    isbn,
-		libType: "yagncheon",
+		Lib: model.Lib{
+			Isbn:    isbn,
+			LibType: "yangcheon",
+		},
 	}
 }
 
-func (e *yangcheon) Request(isbn string) io.ReadCloser {
+func (e *yangcheon) Request() io.ReadCloser {
 	url, err := url.Parse("https://lib.yangcheon.or.kr/main/site/search/bookSearch.do")
 	if err != nil {
 		log.Println(err)
@@ -33,11 +33,11 @@ func (e *yangcheon) Request(isbn string) io.ReadCloser {
 	queryParam.Set("detail", "ok")
 	queryParam.Set("cmd_name", "booksearch")
 	queryParam.Set("search_type", "detail")
-	queryParam.Set("search_isbn_issn", isbn)
+	queryParam.Set("search_isbn_issn", e.Isbn)
 	url.RawQuery = queryParam.Encode()
 
 	r, err := http.Get(url.String())
-	log.Println("url.String()", url.String())
+	// log.Println("url.String()", url.String())
 	if err != nil {
 		log.Println(err)
 	}
@@ -47,37 +47,7 @@ func (e *yangcheon) Request(isbn string) io.ReadCloser {
 	return r.Body
 }
 
-func (e *yangcheon) saveReqToLocal() {
-	body := e.Request(e.isbn)
-	f, err := os.Create("./test.html")
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	b, err := io.ReadAll(body)
-	if err != nil {
-		log.Println(err)
-	}
-	f.Write(b)
-}
-
-func (e *yangcheon) ExtractDataFromLocal() *model.LibBookStatus {
-	f, err := os.Open("./test.html")
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
-	return e.ExtractData(f)
-}
-
-func (e *yangcheon) ExtractData(body io.ReadCloser) *model.LibBookStatus {
+func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
@@ -100,12 +70,13 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) *model.LibBookStatus {
 		})
 	})
 
-	log.Printf("Books: %#+v\n", Books)
-	return &model.LibBookStatus{
-		LibType:    e.libType,
-		LibName:    "양천구립 갈산도서관",
-		Isbn:       e.isbn,
-		BookCode:   "bookCode",
-		BookStatus: "bookStatus",
-	}
+	// log.Printf("Books: %#+v\n", Books)
+	return &Books
+}
+
+func (e *yangcheon) GetLibType() string {
+	return e.LibType
+}
+func (e *yangcheon) GetIsbn() string {
+	return e.Isbn
 }
