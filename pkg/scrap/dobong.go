@@ -1,6 +1,7 @@
 package scrap
 
 import (
+	"fmt"
 	"io"
 	"libra-backend/model"
 	"log"
@@ -11,12 +12,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type yangcheon struct {
+type dobong struct {
 	model.Lib
 }
 
-func NewYangcheon(isbn, district, libname string) model.LibScrap {
-	return &yangcheon{
+func NewDobong(isbn, district, libname string) model.LibScrap {
+	return &dobong{
 		Lib: model.Lib{
 			Isbn:     isbn,
 			District: district,
@@ -25,16 +26,19 @@ func NewYangcheon(isbn, district, libname string) model.LibScrap {
 	}
 }
 
-func (e *yangcheon) Request() (io.ReadCloser, error) {
-	url, err := url.Parse("https://lib.yangcheon.or.kr/main/site/search/bookSearch.do")
+func (e *dobong) Request() (io.ReadCloser, error) {
+	url, err := url.Parse("https://www.unilib.dobong.kr/site/search/search00.do")
 	if err != nil {
 		log.Println(err)
 	}
+
 	queryParam := url.Query()
+
 	queryParam.Set("detail", "ok")
 	queryParam.Set("cmd_name", "booksearch")
 	queryParam.Set("search_type", "detail")
 	queryParam.Set("search_isbn_issn", e.Isbn)
+	queryParam.Set("manage_code", "MA,MB,MC,ME,MG,MJ,MF,MH,SA,MD,SB,SL,SM,SN,SO,SP,SJ,SK,SQ,SS,ST,SU,SG,SH,SC")
 	url.RawQuery = queryParam.Encode()
 
 	r, err := http.Get(url.String())
@@ -49,7 +53,7 @@ func (e *yangcheon) Request() (io.ReadCloser, error) {
 	return r.Body, nil
 }
 
-func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
+func (e *dobong) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
@@ -57,11 +61,16 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 	}
 	var Books []model.LibBookStatus
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
-		libName := strings.Replace(s.Find(" .tit span").Text(), "[", "", 1)
-		libName = strings.Replace(libName, "]", "", 1)
-		bookCode := strings.ReplaceAll(s.Find(".list_area > dl:nth-child(5) > dd").Text(), "\t", "")
+		libName := s.Find(" .tit span.lib_name").Text()
+		bookCode := strings.ReplaceAll(s.Find(".cont dd").Last().Text(), "\t", "")
 		bookStatusRaw := strings.ReplaceAll(s.Find(".book_status").Text(), "\t", "")
 		bookStatus := strings.ReplaceAll(bookStatusRaw, "\n", "")
+
+		bookReturnDate := s.Find(".cont dl:nth-child(5) dt").Text()
+		if bookReturnDate == "반납예정일" {
+			date := s.Find(".cont dl:nth-child(5) dd").Text()
+			bookStatus = fmt.Sprintf("%s(%s)", bookStatus, date)
+		}
 
 		Books = append(Books, model.LibBookStatus{
 			Isbn:       e.Isbn,
@@ -72,12 +81,13 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 		})
 	})
 
+	// log.Printf("Books: %#+v\n", Books)
 	return &Books
 }
 
-func (e *yangcheon) GetDistrict() string {
+func (e *dobong) GetDistrict() string {
 	return e.District
 }
-func (e *yangcheon) GetIsbn() string {
+func (e *dobong) GetIsbn() string {
 	return e.Isbn
 }

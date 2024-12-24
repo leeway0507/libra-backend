@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestYanGcheon(t *testing.T) {
-	isbn, district, libname := "8970126740", "양천구", "갈산도서관"
+func TestDobong(t *testing.T) {
+	isbn, district, libname := "8970126740", "도봉구", "도봉기적의도서관"
 	y := NewDobong(isbn, district, libname)
 	l := NewLocalTest(y)
 

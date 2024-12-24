@@ -21,6 +21,7 @@ type ScrapInstance = func(isbn, district, libname string) model.LibScrap
 var InstanceMap = map[string]ScrapInstance{
 	"교육청": NewEduction,
 	"양천구": NewYangcheon,
+	"도봉구": NewDobong,
 }
 
 type lib struct {
