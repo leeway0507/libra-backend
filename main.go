@@ -1,23 +1,29 @@
 package main
 
 import (
-	"fmt"
+	"flag"
+	"libra-backend/handler"
+	"libra-backend/pkg/middleware"
 	"log"
 	"net/http"
 )
 
+var corsAllowList = []string{
+	"http://localhost:5173",
+	"https://libra-client.pages.dev",
+}
+
 func main() {
+	port := flag.String("port", "3030", "default port 3030")
+	flag.Parse()
+	log.Printf("Starting server on port: %s\n", *port)
+
 	router := http.NewServeMux()
+	router.HandleFunc("/health", handler.GetHealth)
+	router.HandleFunc("/scrap/yangcheon/{isbn}", handler.HandleScrap)
+	router.Handle("/static/", handler.StaticFileHandler())
 
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request received: %s %s", r.Method, r.URL.Path)
-		fmt.Fprintln(w, "hello world!!!")
-	})
-
-	fs := http.FileServer(http.Dir("./static"))
-	router.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	if err := http.ListenAndServe(":80", router); err != nil {
-		log.Printf("err: %#+v\n", err)
+	if err := http.ListenAndServe(":"+*port, middleware.CorsMiddleware(router, corsAllowList)); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }
