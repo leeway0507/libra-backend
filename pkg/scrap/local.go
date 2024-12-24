@@ -20,10 +20,14 @@ func NewLocalTest(LibScrap model.LibScrap) model.LocalScrap {
 }
 
 func (L *Local) SaveReqToLocal() {
-	body := L.Request()
+	body, err := L.Request()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer body.Close()
 
 	cd := utils.GetCurrentFolderName()
-	libType := L.GetLibType()
+	libType := L.GetDistrict()
 	f, err := os.Create(filepath.Join(cd, "test_html", libType+".html"))
 	defer func() {
 		err := f.Close()
@@ -45,7 +49,7 @@ func (L *Local) SaveReqToLocal() {
 
 func (L *Local) ExtractDataFromLocal() *[]model.LibBookStatus {
 	cd := utils.GetCurrentFolderName()
-	libType := L.GetLibType()
+	libType := L.GetDistrict()
 	f, err := os.Open(filepath.Join(cd, "test_html", libType+".html"))
 	if err != nil {
 		log.Println(err)

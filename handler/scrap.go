@@ -8,18 +8,21 @@ import (
 )
 
 func HandleScrap(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	log.Printf("query: %#+v\n", query)
+	libCode := r.PathValue("libCode")
 	isbn := r.PathValue("isbn")
 	if isbn == "" {
 		http.Error(w, "ISBN not provided", http.StatusBadRequest)
 		return
 	}
 
-	engine := scrap.NewYangcheon(isbn)
-	testData := scrap.NewLocalTest(engine)
-	data := testData.ExtractDataFromLocal()
-
+	engine := scrap.GetInstance(libCode)(isbn)
+	b, err := engine.Request()
+	if err != nil {
+		log.Printf("%v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	data := engine.ExtractData(b)
 	response, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshalling JSON: %v", err)

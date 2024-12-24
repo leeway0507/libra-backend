@@ -3,9 +3,9 @@ package model
 import "io"
 
 type LibScrap interface {
-	Request() io.ReadCloser
+	Request() (io.ReadCloser, error)
 	ExtractData(body io.ReadCloser) *[]LibBookStatus
-	GetLibType() string
+	GetDistrict() string
 	GetIsbn() string
 }
 type LocalScrap interface {
@@ -14,11 +14,13 @@ type LocalScrap interface {
 	ExtractDataFromLocal() *[]LibBookStatus
 }
 type Lib struct {
-	Isbn    string
-	LibType string
+	Isbn     string
+	District string
+	LibName  string
 }
+
 type LibBookStatus struct {
-	LibType    string
+	District   string
 	LibName    string
 	Isbn       string
 	BookCode   string

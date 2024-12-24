@@ -20,7 +20,7 @@ func main() {
 
 	router := http.NewServeMux()
 	router.HandleFunc("/health", handler.GetHealth)
-	router.HandleFunc("/scrap/yangcheon/{isbn}", handler.HandleScrap)
+	router.HandleFunc("/scrap/{libCode}/{isbn}", handler.HandleScrap)
 	router.Handle("/static/", handler.StaticFileHandler())
 
 	if err := http.ListenAndServe(":"+*port, middleware.CorsMiddleware(router, corsAllowList)); err != nil {

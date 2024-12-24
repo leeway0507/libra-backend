@@ -15,16 +15,17 @@ type yangcheon struct {
 	model.Lib
 }
 
-func NewYangcheon(isbn string) model.LibScrap {
+func NewYangcheon(isbn, district, libname string) model.LibScrap {
 	return &yangcheon{
 		Lib: model.Lib{
-			Isbn:    isbn,
-			LibType: "yangcheon",
+			Isbn:     isbn,
+			District: district,
+			LibName:  libname,
 		},
 	}
 }
 
-func (e *yangcheon) Request() io.ReadCloser {
+func (e *yangcheon) Request() (io.ReadCloser, error) {
 	url, err := url.Parse("https://lib.yangcheon.or.kr/main/site/search/bookSearch.do")
 	if err != nil {
 		log.Println(err)
@@ -43,8 +44,9 @@ func (e *yangcheon) Request() io.ReadCloser {
 	}
 	if r.StatusCode != 200 {
 		log.Printf("r.StatusCode: %#+v\n", r.StatusCode)
+		return nil, err
 	}
-	return r.Body
+	return r.Body, nil
 }
 
 func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
@@ -63,7 +65,7 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 
 		Books = append(Books, model.LibBookStatus{
 			Isbn:       "1234",
-			LibType:    "yangcheon",
+			District:   "yangcheon",
 			LibName:    libName,
 			BookCode:   strings.Trim(bookCode, " \n"),
 			BookStatus: bookStatus,
@@ -74,8 +76,8 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 	return &Books
 }
 
-func (e *yangcheon) GetLibType() string {
-	return e.LibType
+func (e *yangcheon) GetDistrict() string {
+	return e.District
 }
 func (e *yangcheon) GetIsbn() string {
 	return e.Isbn
