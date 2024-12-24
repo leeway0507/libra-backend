@@ -28,4 +28,10 @@ test.html
 
 /data
 /build
+/dist
+
 /static
+.vscode
+
+build.env
+*/test_html
