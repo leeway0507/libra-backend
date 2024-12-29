@@ -176,38 +176,55 @@ func (q *Queries) GetLibCodFromLibName(ctx context.Context, libName pgtype.Text)
 }
 
 const searchFromBooks = `-- name: SearchFromBooks :many
-SELECT id, isbn, title, author, publisher, publication_year, set_isbn, volume, image_url, description, recommendation, toc, source, url, vector_search 
-FROM books
-WHERE author LIKE '%' || $1 || '%' OR title LIKE '%' || $1 || '%'
-ORDER BY ((bigm_similarity(author, $1) + bigm_similarity(title, $1)) * 10) DESC
+SELECT DISTINCT ON (b.isbn) 
+	b.isbn,
+	b.title,
+	b.author,
+	b.publisher,
+	b.publication_Year,
+	b.image_Url,
+((bigm_similarity(author, $1) + bigm_similarity(title, $1)) * 10)::FLOAT AS score
+FROM books b
+JOIN libsbooks l
+ON b.isbn = l.isbn
+WHERE (b.author LIKE '%' || $1 || '%' OR b.title LIKE '%' || $1 || '%') 
+        AND l.lib_code = ANY($2::int[]) 
+ORDER BY b.isbn DESC
 LIMIT 50
 `
 
-func (q *Queries) SearchFromBooks(ctx context.Context, keyword pgtype.Text) ([]Book, error) {
-	rows, err := q.db.Query(ctx, searchFromBooks, keyword)
+type SearchFromBooksParams struct {
+	Keyword  interface{} `json:"keyword"`
+	LibCodes []int32     `json:"libCodes"`
+}
+
+type SearchFromBooksRow struct {
+	Isbn            pgtype.Text `json:"isbn"`
+	Title           pgtype.Text `json:"title"`
+	Author          pgtype.Text `json:"author"`
+	Publisher       pgtype.Text `json:"publisher"`
+	PublicationYear pgtype.Text `json:"publicationYear"`
+	ImageUrl        pgtype.Text `json:"imageUrl"`
+	Score           float64     `json:"score"`
+}
+
+func (q *Queries) SearchFromBooks(ctx context.Context, arg SearchFromBooksParams) ([]SearchFromBooksRow, error) {
+	rows, err := q.db.Query(ctx, searchFromBooks, arg.Keyword, arg.LibCodes)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Book
+	var items []SearchFromBooksRow
 	for rows.Next() {
-		var i Book
+		var i SearchFromBooksRow
 		if err := rows.Scan(
-			&i.ID,
 			&i.Isbn,
 			&i.Title,
 			&i.Author,
 			&i.Publisher,
 			&i.PublicationYear,
-			&i.SetIsbn,
-			&i.Volume,
 			&i.ImageUrl,
-			&i.Description,
-			&i.Recommendation,
-			&i.Toc,
-			&i.Source,
-			&i.Url,
-			&i.VectorSearch,
+			&i.Score,
 		); err != nil {
 			return nil, err
 		}

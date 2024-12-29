@@ -36,12 +36,12 @@ func TestSearch(t *testing.T) {
 	t.Run("search", func(t *testing.T) {
 		keyword := "한강"
 
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search?", "q=", keyword), nil)
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111015"), nil)
 		resp := httptest.NewRecorder()
 
 		HandleSearchNormal(resp, req, query)
 		if resp.Result().StatusCode != 200 {
-			t.Fatal("failed to respond")
+			t.Fatal(resp.Body)
 		}
 
 		b, err := io.ReadAll(resp.Body)

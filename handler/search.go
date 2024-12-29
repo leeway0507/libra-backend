@@ -6,6 +6,8 @@ import (
 	"libra-backend/db/sqlc"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -26,8 +28,33 @@ func HandleSearchNormal(w http.ResponseWriter, r *http.Request, query *sqlc.Quer
 		return
 	}
 
+	libCode := r.URL.Query().Get("libCode")
+	if libCode == "" {
+		log.Println("no query found", r.URL)
+		http.Error(w, "no query found", http.StatusBadRequest)
+		return
+	}
+
+	libCodeArr := strings.Split(libCode, ",")
+	var libCodeIntArr []int32
+	for _, code := range libCodeArr {
+		intCode, err := strconv.Atoi(code)
+
+		if err != nil {
+			log.Printf("Error converting libCode to int: %v", err)
+			http.Error(w, "failed to convert libCode to Int", http.StatusInternalServerError)
+			return
+		}
+
+		libCodeIntArr = append(libCodeIntArr, int32(intCode))
+	}
+
 	ctx := context.Background()
-	data, err := query.SearchFromBooks(ctx, pgtype.Text{String: keyword, Valid: true})
+
+	data, err := query.SearchFromBooks(ctx, sqlc.SearchFromBooksParams{
+		Keyword:  pgtype.Text{String: keyword, Valid: true},
+		LibCodes: libCodeIntArr,
+	})
 	if err != nil {
 		log.Printf("err: %#+v\n", err)
 		http.Error(w, "db data encoding error", http.StatusInternalServerError)
