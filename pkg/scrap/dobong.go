@@ -66,6 +66,11 @@ func (e *dobong) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error)
 		bookCode := strings.ReplaceAll(s.Find(".cont dd").Last().Text(), "\t", "")
 		bookStatusRaw := strings.ReplaceAll(s.Find(".book_status").Text(), "\t", "")
 		bookStatus := strings.ReplaceAll(bookStatusRaw, "\n", "")
+		isEbook := len(s.Find(".ebook_icon").Text()) > 0
+		if isEbook {
+			bookStatus = "전자책"
+			bookCode = "-"
+		}
 
 		bookReturnDate := s.Find(".cont dl:nth-child(5) dt").Text()
 		if bookReturnDate == "반납예정일" {
