@@ -143,10 +143,10 @@ func (e *education) requestToSpec(url string) (io.ReadCloser, error) {
 
 }
 
-func (e *education) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
+func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	bookCode := doc.Find("#position > tbody > tr > td:nth-child(3)").Text()
@@ -185,8 +185,10 @@ func (e *education) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 		})
 	})
 
-	return &Books
-
+	if Books == nil {
+		return nil, fmt.Errorf("ExtractData : no match data")
+	}
+	return &Books, nil
 }
 
 func (e *education) GetDistrict() string {

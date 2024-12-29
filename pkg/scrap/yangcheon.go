@@ -49,11 +49,11 @@ func (e *yangcheon) Request() (io.ReadCloser, error) {
 	return r.Body, nil
 }
 
-func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
+func (e *yangcheon) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	var Books []model.LibBookStatus
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
@@ -72,7 +72,10 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 		})
 	})
 
-	return &Books
+	if Books == nil {
+		return nil, fmt.Errorf("ExtractData : no match data")
+	}
+	return &Books, nil
 }
 
 func (e *yangcheon) GetDistrict() string {

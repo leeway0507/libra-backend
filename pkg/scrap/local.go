@@ -47,13 +47,18 @@ func (L *Local) SaveReqToLocal() {
 	f.Write(b)
 }
 
-func (L *Local) ExtractDataFromLocal() *[]model.LibBookStatus {
+func (L *Local) ExtractDataFromLocal() (*[]model.LibBookStatus, error) {
 	cd := utils.GetCurrentFolderName()
 	libType := L.GetDistrict()
 	f, err := os.Open(filepath.Join(cd, "test_html", libType+".html"))
 	if err != nil {
 		log.Println(err)
-		return nil
+		return nil, err
 	}
-	return L.ExtractData(f)
+	d, err := L.ExtractData(f)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return d, nil
 }

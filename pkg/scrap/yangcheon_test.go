@@ -15,7 +15,10 @@ func TestYanGcheon(t *testing.T) {
 	})
 
 	t.Run("load body", func(t *testing.T) {
-		r := l.ExtractDataFromLocal()
+		r, err := l.ExtractDataFromLocal()
+		if err != nil {
+			t.Fatal(err)
+		}
 		log.Printf("r: %#+v\n", r)
 	})
 
