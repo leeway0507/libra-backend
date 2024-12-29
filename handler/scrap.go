@@ -16,13 +16,13 @@ func HandleScrap(w http.ResponseWriter, r *http.Request) {
 	}
 
 	engine := scrap.GetInstance(libCode)(isbn)
-	b, err := engine.Request()
+	reader, err := engine.Request()
 	if err != nil {
 		log.Printf("%v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	data := engine.ExtractData(b)
+	data := engine.ExtractData(reader)
 	response, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshalling JSON: %v", err)

@@ -47,7 +47,7 @@ func (e *education) Request() (io.ReadCloser, error) {
 	if url == "" {
 		return nil, fmt.Errorf("failed to load book url")
 	}
-	return e.requestToSpec(url), nil
+	return e.requestToSpec(url)
 }
 
 func (e *education) searchBook() io.ReadCloser {
@@ -129,16 +129,17 @@ func (e *education) extractSpecURL(body io.ReadCloser) string {
 	return url.String()
 }
 
-func (e *education) requestToSpec(url string) io.ReadCloser {
+func (e *education) requestToSpec(url string) (io.ReadCloser, error) {
 	r, err := http.Get(url)
-	// log.Println("url.String()", url.String())
 	if err != nil {
 		log.Println(err)
+		return nil, fmt.Errorf("error status 500")
 	}
 	if r.StatusCode != 200 {
 		log.Printf("r.StatusCode: %#+v\n", r.StatusCode)
+		return nil, err
 	}
-	return r.Body
+	return r.Body, nil
 
 }
 

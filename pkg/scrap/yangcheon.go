@@ -1,6 +1,7 @@
 package scrap
 
 import (
+	"fmt"
 	"io"
 	"libra-backend/model"
 	"log"
@@ -38,13 +39,12 @@ func (e *yangcheon) Request() (io.ReadCloser, error) {
 	url.RawQuery = queryParam.Encode()
 
 	r, err := http.Get(url.String())
-	// log.Println("url.String()", url.String())
 	if err != nil {
 		log.Println(err)
 	}
 	if r.StatusCode != 200 {
 		log.Printf("r.StatusCode: %#+v\n", r.StatusCode)
-		return nil, err
+		return nil, fmt.Errorf("error status 500")
 	}
 	return r.Body, nil
 }
