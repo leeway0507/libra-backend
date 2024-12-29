@@ -20,9 +20,9 @@ type Lib struct {
 }
 
 type LibBookStatus struct {
-	District   string
-	LibName    string
-	Isbn       string
-	BookCode   string
-	BookStatus string
+	District   string `json:"district"`
+	LibName    string `json:"libName"`
+	Isbn       string `json:"isbn"`
+	BookCode   string `json:"bookCode"`
+	BookStatus string `json:"bookStatus"`
 }

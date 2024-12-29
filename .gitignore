@@ -29,6 +29,7 @@ test.html
 /data
 /build
 /dist
+/config 
 
 /static
 .vscode
