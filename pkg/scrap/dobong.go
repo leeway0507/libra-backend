@@ -35,7 +35,7 @@ func (e *dobong) Request() (io.ReadCloser, error) {
 	queryParam := url.Query()
 
 	queryParam.Set("detail", "ok")
-	queryParam.Set("cmd_name", "booksearch")
+	queryParam.Set("cmd_name", "bookandnonbooksearch")
 	queryParam.Set("search_type", "detail")
 	queryParam.Set("search_isbn_issn", e.Isbn)
 	queryParam.Set("manage_code", "MA,MB,MC,ME,MG,MJ,MF,MH,SA,MD,SB,SL,SM,SN,SO,SP,SJ,SK,SQ,SS,ST,SU,SG,SH,SC")
@@ -54,11 +54,11 @@ func (e *dobong) Request() (io.ReadCloser, error) {
 	return r.Body, nil
 }
 
-func (e *dobong) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
+func (e *dobong) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	var Books []model.LibBookStatus
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
@@ -82,8 +82,10 @@ func (e *dobong) ExtractData(body io.ReadCloser) *[]model.LibBookStatus {
 		})
 	})
 
-	// log.Printf("Books: %#+v\n", Books)
-	return &Books
+	if Books == nil {
+		return nil, fmt.Errorf("ExtractData : no match data")
+	}
+	return &Books, nil
 }
 
 func (e *dobong) GetDistrict() string {

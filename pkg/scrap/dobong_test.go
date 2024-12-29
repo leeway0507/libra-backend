@@ -6,7 +6,7 @@ import (
 )
 
 func TestDobong(t *testing.T) {
-	isbn, district, libname := "8970126740", "도봉구", "도봉기적의도서관"
+	isbn, district, libname := "9791191590272", "도봉구", "도봉기적의도서관"
 	y := NewDobong(isbn, district, libname)
 	l := NewLocalTest(y)
 
@@ -15,7 +15,10 @@ func TestDobong(t *testing.T) {
 	})
 
 	t.Run("load body", func(t *testing.T) {
-		r := l.ExtractDataFromLocal()
+		r, err := l.ExtractDataFromLocal()
+		if err != nil {
+			t.Fatal(err)
+		}
 		log.Printf("r: %#+v\n", r)
 	})
 
