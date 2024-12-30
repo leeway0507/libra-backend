@@ -84,3 +84,6 @@ func (e *yangcheon) GetDistrict() string {
 func (e *yangcheon) GetIsbn() string {
 	return e.Isbn
 }
+func (e *yangcheon) GetLibName() string {
+	return e.LibName
+}

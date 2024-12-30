@@ -99,3 +99,6 @@ func (e *dobong) GetDistrict() string {
 func (e *dobong) GetIsbn() string {
 	return e.Isbn
 }
+func (e *dobong) GetLibName() string {
+	return e.LibName
+}

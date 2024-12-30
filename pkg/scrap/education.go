@@ -197,3 +197,6 @@ func (e *education) GetDistrict() string {
 func (e *education) GetIsbn() string {
 	return e.Isbn
 }
+func (e *education) GetLibName() string {
+	return e.LibName
+}

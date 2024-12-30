@@ -30,8 +30,11 @@ func main() {
 
 	router := http.NewServeMux()
 	router.HandleFunc("/health", handler.GetHealth)
-	router.HandleFunc("/scrap/{libCode}/{isbn}", handler.HandleScrap)
+
 	router.Handle("/static/", handler.StaticFileHandler())
+
+	scrapRouter := handler.GetScrapRouter(query)
+	router.Handle("/scrap/", http.StripPrefix("/scrap", scrapRouter))
 
 	bookRouter := handler.GetBookRouter(query)
 	router.Handle("/book/", http.StripPrefix("/book", bookRouter))

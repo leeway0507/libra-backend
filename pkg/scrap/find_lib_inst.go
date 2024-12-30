@@ -7,12 +7,12 @@ func GetInstance(libCode string) func(isbn string) model.LibScrap {
 	if !isExist {
 		return nil
 	}
-	inst, isExist := InstanceMap[libInfo.District]
+	scrapInstance, isExist := InstanceMap[libInfo.District]
 	if !isExist {
 		return nil
 	}
 	return func(isbn string) model.LibScrap {
-		return inst(isbn, libInfo.District, libInfo.LibName)
+		return scrapInstance(isbn, libInfo.District, libInfo.LibName)
 	}
 }
 
