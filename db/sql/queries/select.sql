@@ -1,4 +1,4 @@
--- name: GerSearchResult :many
+-- name: GetSearchResult :many
 SELECT * FROM Books;
 
 -- name: GetBookDetail :one
@@ -46,12 +46,15 @@ SELECT
     b.author,
     b.publisher,
     b.publication_year,
-    b.image_url
+    b.image_url,
+    (embedding <=> $1)::REAL as score
 FROM books b
 JOIN BookEmbedding e ON b.isbn = e.isbn
 JOIN FilteredLibsBooks l ON l.isbn = e.isbn
+WHERE embedding <=> $1 <= 0.8
 ORDER BY embedding <=> $1 ASC
 LIMIT 50;
+
 
 
 

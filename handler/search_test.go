@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -32,7 +31,7 @@ func TestSearch(t *testing.T) {
 
 	})
 	t.Run("search", func(t *testing.T) {
-		keyword := "파이썬"
+		keyword := "go 언어"
 
 		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111015,111005"), nil)
 		resp := httptest.NewRecorder()
@@ -47,7 +46,7 @@ func TestSearch(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var books []sqlc.Book
+		var books []sqlc.SearchFromBooksRow
 		err = json.Unmarshal(b, &books)
 		if err != nil {
 			t.Fatal(err)
@@ -55,12 +54,15 @@ func TestSearch(t *testing.T) {
 		if len(books) == 0 {
 			t.Fatal("len book is 0")
 		}
-		if !strings.Contains(books[0].Title.String, "파이썬") {
-			log.Printf("books[0]: %#+v\n", books[0])
-			t.Fatal("wrong answer")
+		for _, b := range books {
+			if b.Score > 0.8 {
+				log.Printf("b: %#+v\n", b)
+				log.Fatal("score over 0.8")
+			}
 		}
 		for _, b := range books[:10] {
-			log.Printf("title :%s", b.Title.String)
+			log.Printf("%s || %v \n\n", b.Title.String, b.Score)
 		}
+
 	})
 }

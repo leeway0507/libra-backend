@@ -60,45 +60,6 @@ func (q *Queries) ExtractBooksForEmbedding(ctx context.Context) ([]ExtractBooksF
 	return items, nil
 }
 
-const gerSearchResult = `-- name: GerSearchResult :many
-SELECT id, isbn, title, author, publisher, publication_year, volume, image_url, description, recommendation, toc, source, url, vector_search FROM Books
-`
-
-func (q *Queries) GerSearchResult(ctx context.Context) ([]Book, error) {
-	rows, err := q.db.Query(ctx, gerSearchResult)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Book
-	for rows.Next() {
-		var i Book
-		if err := rows.Scan(
-			&i.ID,
-			&i.Isbn,
-			&i.Title,
-			&i.Author,
-			&i.Publisher,
-			&i.PublicationYear,
-			&i.Volume,
-			&i.ImageUrl,
-			&i.Description,
-			&i.Recommendation,
-			&i.Toc,
-			&i.Source,
-			&i.Url,
-			&i.VectorSearch,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getBookDetail = `-- name: GetBookDetail :one
 SELECT 
     b.id, b.isbn, b.title, b.author, b.publisher, b.publication_year, b.volume, b.image_url, b.description, b.recommendation, b.toc, b.source, b.url, b.vector_search,
@@ -173,6 +134,45 @@ func (q *Queries) GetLibCodFromLibName(ctx context.Context, libName pgtype.Text)
 	return lib_code, err
 }
 
+const getSearchResult = `-- name: GetSearchResult :many
+SELECT id, isbn, title, author, publisher, publication_year, volume, image_url, description, recommendation, toc, source, url, vector_search FROM Books
+`
+
+func (q *Queries) GetSearchResult(ctx context.Context) ([]Book, error) {
+	rows, err := q.db.Query(ctx, getSearchResult)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Book
+	for rows.Next() {
+		var i Book
+		if err := rows.Scan(
+			&i.ID,
+			&i.Isbn,
+			&i.Title,
+			&i.Author,
+			&i.Publisher,
+			&i.PublicationYear,
+			&i.Volume,
+			&i.ImageUrl,
+			&i.Description,
+			&i.Recommendation,
+			&i.Toc,
+			&i.Source,
+			&i.Url,
+			&i.VectorSearch,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchFromBooks = `-- name: SearchFromBooks :many
 WITH FilteredLibsBooks AS (
     SELECT DISTINCT isbn
@@ -185,10 +185,12 @@ SELECT
     b.author,
     b.publisher,
     b.publication_year,
-    b.image_url
+    b.image_url,
+    (embedding <=> $1)::REAL as score
 FROM books b
 JOIN BookEmbedding e ON b.isbn = e.isbn
 JOIN FilteredLibsBooks l ON l.isbn = e.isbn
+WHERE embedding <=> $1 <= 0.8
 ORDER BY embedding <=> $1 ASC
 LIMIT 50
 `
@@ -205,6 +207,7 @@ type SearchFromBooksRow struct {
 	Publisher       pgtype.Text `json:"publisher"`
 	PublicationYear pgtype.Text `json:"publicationYear"`
 	ImageUrl        pgtype.Text `json:"imageUrl"`
+	Score           float32     `json:"score"`
 }
 
 func (q *Queries) SearchFromBooks(ctx context.Context, arg SearchFromBooksParams) ([]SearchFromBooksRow, error) {
@@ -223,6 +226,7 @@ func (q *Queries) SearchFromBooks(ctx context.Context, arg SearchFromBooksParams
 			&i.Publisher,
 			&i.PublicationYear,
 			&i.ImageUrl,
+			&i.Score,
 		); err != nil {
 			return nil, err
 		}
