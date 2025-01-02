@@ -18,28 +18,26 @@ import (
 func TestSearch(t *testing.T) {
 	cfg := config.GetEnvConfig()
 	ctx := context.Background()
-	conn := db.ConnectPG(cfg.DATABASE_URL, ctx)
-	query := sqlc.New(conn)
-
+	pool := db.ConnectPGPool(cfg.DATABASE_URL, ctx)
 	t.Run("no search query", func(t *testing.T) {
 		keyword := ""
 
 		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search?", "q=", keyword), nil)
 		resp := httptest.NewRecorder()
 
-		HandleSearchNormal(resp, req, query)
+		HandleSearchNormal(resp, req, pool)
 		if resp.Result().StatusCode != 400 {
 			t.Fatal("should return 400")
 		}
 
 	})
 	t.Run("search", func(t *testing.T) {
-		keyword := "한강"
+		keyword := "파이썬"
 
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111015"), nil)
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111015,111005"), nil)
 		resp := httptest.NewRecorder()
 
-		HandleSearchNormal(resp, req, query)
+		HandleSearchNormal(resp, req, pool)
 		if resp.Result().StatusCode != 200 {
 			t.Fatal(resp.Body)
 		}
@@ -54,9 +52,15 @@ func TestSearch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(books[0].Author.String, "한강") {
+		if len(books) == 0 {
+			t.Fatal("len book is 0")
+		}
+		if !strings.Contains(books[0].Title.String, "파이썬") {
 			log.Printf("books[0]: %#+v\n", books[0])
 			t.Fatal("wrong answer")
+		}
+		for _, b := range books[:10] {
+			log.Printf("title :%s", b.Title.String)
 		}
 	})
 }

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package= "./pb";
+
+
+message QueryEmbedding {
+  string query = 1;
+  repeated float embedding = 2;  
+}
+
+// generate code  : protoc --go_out=. libra-backend.proto
+
