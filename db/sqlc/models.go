@@ -16,7 +16,6 @@ type Book struct {
 	Author          pgtype.Text `json:"author"`
 	Publisher       pgtype.Text `json:"publisher"`
 	PublicationYear pgtype.Text `json:"publicationYear"`
-	SetIsbn         pgtype.Text `json:"setIsbn"`
 	Volume          pgtype.Text `json:"volume"`
 	ImageUrl        pgtype.Text `json:"imageUrl"`
 	Description     pgtype.Text `json:"description"`
@@ -35,21 +34,20 @@ type Bookembedding struct {
 
 type Library struct {
 	ID            int32         `json:"id"`
-	LibCode       pgtype.Int4   `json:"libCode"`
+	LibCode       pgtype.Text   `json:"libCode"`
 	LibName       pgtype.Text   `json:"libName"`
-	LibAddress    pgtype.Text   `json:"libAddress"`
+	Address       pgtype.Text   `json:"address"`
 	Tel           pgtype.Text   `json:"tel"`
 	Latitude      pgtype.Float8 `json:"latitude"`
-	Longtitude    pgtype.Float8 `json:"longtitude"`
+	Longitude     pgtype.Float8 `json:"longitude"`
 	Homepage      pgtype.Text   `json:"homepage"`
 	Closed        pgtype.Text   `json:"closed"`
 	OperatingTime pgtype.Text   `json:"operatingTime"`
-	BookCount     pgtype.Int4   `json:"bookCount"`
 }
 
 type Libsbook struct {
 	ID        int32       `json:"id"`
-	LibCode   pgtype.Int4 `json:"libCode"`
+	LibCode   pgtype.Text `json:"libCode"`
 	Isbn      pgtype.Text `json:"isbn"`
 	ClassNum  pgtype.Text `json:"classNum"`
 	BookCode  pgtype.Text `json:"bookCode"`

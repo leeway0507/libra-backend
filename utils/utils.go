@@ -15,7 +15,7 @@ func RemoveEmptyStringInSlice(s []string) []string {
 	return newS
 }
 
-func GetCurrentFileName() string {
+func GetCurrentFileDir() string {
 	_, filename, _, ok := runtime.Caller(2)
 	if !ok {
 		panic("No caller information")
@@ -23,6 +23,6 @@ func GetCurrentFileName() string {
 	return filename
 }
 
-func GetCurrentFolderName() string {
-	return filepath.Dir(GetCurrentFileName())
+func GetCurrentFolderDir() string {
+	return filepath.Dir(GetCurrentFileDir())
 }

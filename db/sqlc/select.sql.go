@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/pgvector/pgvector-go"
 )
 
 const extractBooksForEmbedding = `-- name: ExtractBooksForEmbedding :many
@@ -60,7 +61,7 @@ func (q *Queries) ExtractBooksForEmbedding(ctx context.Context) ([]ExtractBooksF
 }
 
 const gerSearchResult = `-- name: GerSearchResult :many
-SELECT id, isbn, title, author, publisher, publication_year, set_isbn, volume, image_url, description, recommendation, toc, source, url, vector_search FROM Books
+SELECT id, isbn, title, author, publisher, publication_year, volume, image_url, description, recommendation, toc, source, url, vector_search FROM Books
 `
 
 func (q *Queries) GerSearchResult(ctx context.Context) ([]Book, error) {
@@ -79,7 +80,6 @@ func (q *Queries) GerSearchResult(ctx context.Context) ([]Book, error) {
 			&i.Author,
 			&i.Publisher,
 			&i.PublicationYear,
-			&i.SetIsbn,
 			&i.Volume,
 			&i.ImageUrl,
 			&i.Description,
@@ -101,7 +101,7 @@ func (q *Queries) GerSearchResult(ctx context.Context) ([]Book, error) {
 
 const getBookDetail = `-- name: GetBookDetail :one
 SELECT 
-    b.id, b.isbn, b.title, b.author, b.publisher, b.publication_year, b.set_isbn, b.volume, b.image_url, b.description, b.recommendation, b.toc, b.source, b.url, b.vector_search,
+    b.id, b.isbn, b.title, b.author, b.publisher, b.publication_year, b.volume, b.image_url, b.description, b.recommendation, b.toc, b.source, b.url, b.vector_search,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'libCode', l.lib_code,
@@ -111,13 +111,13 @@ SELECT
     ) AS lib_books
 FROM Books b
 JOIN libsbooks l 
-    ON b.isbn = l.isbn AND l.lib_code = ANY($1::int[])
+    ON b.isbn = l.isbn AND l.lib_code = ANY($1::VARCHAR(20)[])
 WHERE b.isbn = $2
 GROUP BY b.isbn, b.id
 `
 
 type GetBookDetailParams struct {
-	LibCodes []int32     `json:"libCodes"`
+	LibCodes []string    `json:"libCodes"`
 	Isbn     pgtype.Text `json:"isbn"`
 }
 
@@ -128,7 +128,6 @@ type GetBookDetailRow struct {
 	Author          pgtype.Text `json:"author"`
 	Publisher       pgtype.Text `json:"publisher"`
 	PublicationYear pgtype.Text `json:"publicationYear"`
-	SetIsbn         pgtype.Text `json:"setIsbn"`
 	Volume          pgtype.Text `json:"volume"`
 	ImageUrl        pgtype.Text `json:"imageUrl"`
 	Description     pgtype.Text `json:"description"`
@@ -150,7 +149,6 @@ func (q *Queries) GetBookDetail(ctx context.Context, arg GetBookDetailParams) (G
 		&i.Author,
 		&i.Publisher,
 		&i.PublicationYear,
-		&i.SetIsbn,
 		&i.Volume,
 		&i.ImageUrl,
 		&i.Description,
@@ -168,34 +166,36 @@ const getLibCodFromLibName = `-- name: GetLibCodFromLibName :one
 SELECT lib_code FROM libraries WHERE lib_name = $1
 `
 
-func (q *Queries) GetLibCodFromLibName(ctx context.Context, libName pgtype.Text) (pgtype.Int4, error) {
+func (q *Queries) GetLibCodFromLibName(ctx context.Context, libName pgtype.Text) (pgtype.Text, error) {
 	row := q.db.QueryRow(ctx, getLibCodFromLibName, libName)
-	var lib_code pgtype.Int4
+	var lib_code pgtype.Text
 	err := row.Scan(&lib_code)
 	return lib_code, err
 }
 
 const searchFromBooks = `-- name: SearchFromBooks :many
-SELECT DISTINCT ON (b.isbn) 
-	b.isbn,
-	b.title,
-	b.author,
-	b.publisher,
-	b.publication_Year,
-	b.image_Url,
-((bigm_similarity(author, $1) + bigm_similarity(title, $1)) * 10)::FLOAT AS score
+WITH FilteredLibsBooks AS (
+    SELECT DISTINCT isbn
+    FROM libsbooks
+    WHERE lib_code = ANY($2::VARCHAR(15)[])
+)
+SELECT
+    b.isbn,
+    b.title,
+    b.author,
+    b.publisher,
+    b.publication_year,
+    b.image_url
 FROM books b
-JOIN libsbooks l
-ON b.isbn = l.isbn
-WHERE (b.author LIKE '%' || $1 || '%' OR b.title LIKE '%' || $1 || '%') 
-        AND l.lib_code = ANY($2::int[]) 
-ORDER BY b.isbn DESC
+JOIN BookEmbedding e ON b.isbn = e.isbn
+JOIN FilteredLibsBooks l ON l.isbn = e.isbn
+ORDER BY embedding <=> $1 ASC
 LIMIT 50
 `
 
 type SearchFromBooksParams struct {
-	Keyword  interface{} `json:"keyword"`
-	LibCodes []int32     `json:"libCodes"`
+	Embedding pgvector.Vector `json:"embedding"`
+	LibCodes  []string        `json:"libCodes"`
 }
 
 type SearchFromBooksRow struct {
@@ -205,11 +205,10 @@ type SearchFromBooksRow struct {
 	Publisher       pgtype.Text `json:"publisher"`
 	PublicationYear pgtype.Text `json:"publicationYear"`
 	ImageUrl        pgtype.Text `json:"imageUrl"`
-	Score           float64     `json:"score"`
 }
 
 func (q *Queries) SearchFromBooks(ctx context.Context, arg SearchFromBooksParams) ([]SearchFromBooksRow, error) {
-	rows, err := q.db.Query(ctx, searchFromBooks, arg.Keyword, arg.LibCodes)
+	rows, err := q.db.Query(ctx, searchFromBooks, arg.Embedding, arg.LibCodes)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +223,6 @@ func (q *Queries) SearchFromBooks(ctx context.Context, arg SearchFromBooksParams
 			&i.Publisher,
 			&i.PublicationYear,
 			&i.ImageUrl,
-			&i.Score,
 		); err != nil {
 			return nil, err
 		}

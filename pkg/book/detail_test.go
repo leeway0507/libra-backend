@@ -15,7 +15,7 @@ func TestBookDetail(t *testing.T) {
 	query := sqlc.New(conn)
 	t.Run("get data by isbn", func(t *testing.T) {
 		isbn := "9791169850483"
-		libCode := []int32{111005, 111015}
+		libCode := []string{"111005", "111015"}
 		_, err := RequestBookDetail(query, isbn, libCode)
 		if err != nil {
 			t.Fatal(err)

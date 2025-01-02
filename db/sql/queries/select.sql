@@ -13,7 +13,7 @@ SELECT
     ) AS lib_books
 FROM Books b
 JOIN libsbooks l 
-    ON b.isbn = l.isbn AND l.lib_code = ANY(@lib_codes::int[])
+    ON b.isbn = l.isbn AND l.lib_code = ANY(@lib_codes::VARCHAR(20)[])
 WHERE b.isbn = @isbn
 GROUP BY b.isbn, b.id;
 
@@ -35,30 +35,24 @@ WHERE (
 SELECT lib_code FROM libraries WHERE lib_name = $1;
 
 -- name: SearchFromBooks :many
-SELECT DISTINCT ON (b.isbn) 
-	b.isbn,
-	b.title,
-	b.author,
-	b.publisher,
-	b.publication_Year,
-	b.image_Url,
-((bigm_similarity(author, @keyword) + bigm_similarity(title, @keyword)) * 10)::FLOAT AS score
+WITH FilteredLibsBooks AS (
+    SELECT DISTINCT isbn
+    FROM libsbooks
+    WHERE lib_code = ANY(@lib_codes::VARCHAR(15)[])
+)
+SELECT
+    b.isbn,
+    b.title,
+    b.author,
+    b.publisher,
+    b.publication_year,
+    b.image_url
 FROM books b
-JOIN libsbooks l
-ON b.isbn = l.isbn
-WHERE (b.author LIKE '%' || @keyword || '%' OR b.title LIKE '%' || @keyword || '%') 
-        AND l.lib_code = ANY(@lib_codes::int[]) 
-ORDER BY b.isbn DESC
+JOIN BookEmbedding e ON b.isbn = e.isbn
+JOIN FilteredLibsBooks l ON l.isbn = e.isbn
+ORDER BY embedding <=> $1 ASC
 LIMIT 50;
 
--- explain (analyze)
--- SELECT DISTINCT ON (b.isbn) 
---   b.*, 
---   ((bigm_similarity(b.author, '파이썬') + bigm_similarity(b.title, '파이썬')) * 10) AS score
--- FROM books b
--- JOIN libsbooks l
--- ON b.isbn = l.isbn
--- WHERE (b.author LIKE '%파이썬%' OR b.title LIKE '%파이썬%') 
---   AND l.lib_code = ANY(ARRAY[711539,111003,111006,111005,111004,111501])
--- ORDER BY b.isbn, score DESC
--- LIMIT 50;
+
+
+

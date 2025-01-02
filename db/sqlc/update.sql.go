@@ -23,7 +23,7 @@ WHERE
 type UpdateClassNumParams struct {
 	ClassNum pgtype.Text `json:"classNum"`
 	Isbn     pgtype.Text `json:"isbn"`
-	LibCode  pgtype.Int4 `json:"libCode"`
+	LibCode  pgtype.Text `json:"libCode"`
 }
 
 func (q *Queries) UpdateClassNum(ctx context.Context, arg UpdateClassNumParams) error {
@@ -32,7 +32,7 @@ func (q *Queries) UpdateClassNum(ctx context.Context, arg UpdateClassNumParams) 
 }
 
 const updateDescription = `-- name: UpdateDescription :exec
-Update books 
+UPDATE books 
 SET Description = $1
 WHERE isbn = $2 AND (Description = '' OR Description IS NULL)
 `
@@ -48,7 +48,7 @@ func (q *Queries) UpdateDescription(ctx context.Context, arg UpdateDescriptionPa
 }
 
 const updateRecom = `-- name: UpdateRecom :exec
-Update books 
+UPDATE books 
 SET Recommendation = $1
 WHERE isbn = $2 AND (Recommendation = '' OR Recommendation IS NULL)
 `
@@ -64,7 +64,7 @@ func (q *Queries) UpdateRecom(ctx context.Context, arg UpdateRecomParams) error 
 }
 
 const updateToc = `-- name: UpdateToc :exec
-Update books 
+UPDATE books 
 SET Toc = $1
 WHERE isbn = $2 AND (Toc = '' OR Toc IS NULL)
 `

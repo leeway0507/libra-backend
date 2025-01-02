@@ -26,7 +26,7 @@ func (L *Local) SaveReqToLocal() {
 	}
 	defer body.Close()
 
-	cd := utils.GetCurrentFolderName()
+	cd := utils.GetCurrentFolderDir()
 	libType := L.GetDistrict()
 	f, err := os.Create(filepath.Join(cd, "test_html", libType+".html"))
 	defer func() {
@@ -48,7 +48,7 @@ func (L *Local) SaveReqToLocal() {
 }
 
 func (L *Local) ExtractDataFromLocal() (*[]model.LibBookStatus, error) {
-	cd := utils.GetCurrentFolderName()
+	cd := utils.GetCurrentFolderDir()
 	libType := L.GetDistrict()
 	f, err := os.Open(filepath.Join(cd, "test_html", libType+".html"))
 	if err != nil {

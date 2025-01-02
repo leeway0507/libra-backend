@@ -9,7 +9,7 @@ import (
 )
 
 type LibArr struct {
-	LibCode  int    `json:"libCode"`
+	LibCode  string `json:"libCode"`
 	Classnum string `json:"classNum"`
 	Bookcode string `json:"bookCode"`
 }
@@ -18,7 +18,7 @@ type BookDetail struct {
 	LibBooks []LibArr `json:"libBooks"`
 }
 
-func RequestBookDetail(query *sqlc.Queries, isbn string, libCodes []int32) (*BookDetail, error) {
+func RequestBookDetail(query *sqlc.Queries, isbn string, libCodes []string) (*BookDetail, error) {
 	params := sqlc.GetBookDetailParams{
 		Isbn:     pgtype.Text{String: isbn, Valid: true},
 		LibCodes: libCodes,
