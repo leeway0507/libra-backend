@@ -691,7 +691,7 @@ var LibCodeMap = map[string]lib{
 		LibName:  "고맙습니다 하난곡작은도서관",
 	},
 	"111314": {
-		District: "중구",
+		District: "서울시",
 		LibName:  "서울도서관",
 	},
 	"111331": {

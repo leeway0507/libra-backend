@@ -5,7 +5,6 @@ import (
 	"flag"
 	"libra-backend/config"
 	"libra-backend/db"
-	"libra-backend/db/sqlc"
 	"libra-backend/handler"
 	"libra-backend/pkg/middleware"
 	"log"
@@ -21,25 +20,33 @@ var cfg = config.GetEnvConfig()
 
 func main() {
 	port := flag.String("port", "3030", "default port 3030")
+	deploy := flag.Bool("deploy", false, "default false")
 	flag.Parse()
 	log.Printf("Starting server on port: %s\n", *port)
 
 	ctx := context.Background()
-	conn := db.ConnectPG(cfg.DATABASE_URL, ctx)
-	query := sqlc.New(conn)
+	var db_URL string
+	if *deploy {
+		db_URL = cfg.DATABASE_URL_SERVER
+	} else {
+		db_URL = cfg.DATABASE_URL
+	}
+
+	pool := db.ConnectPGPool(db_URL, ctx)
+	defer pool.Close()
 
 	router := http.NewServeMux()
 	router.HandleFunc("/health", handler.GetHealth)
 
 	router.Handle("/static/", handler.StaticFileHandler())
 
-	scrapRouter := handler.GetScrapRouter(query)
+	scrapRouter := handler.GetScrapRouter(pool)
 	router.Handle("/scrap/", http.StripPrefix("/scrap", scrapRouter))
 
-	bookRouter := handler.GetBookRouter(query)
+	bookRouter := handler.GetBookRouter(pool)
 	router.Handle("/book/", http.StripPrefix("/book", bookRouter))
 
-	searchRouter := handler.GetSearchRouter(query)
+	searchRouter := handler.GetSearchRouter(pool)
 	router.Handle("/search/", http.StripPrefix("/search", searchRouter))
 
 	if err := http.ListenAndServe(":"+*port, middleware.CorsMiddleware(router, corsAllowList)); err != nil {

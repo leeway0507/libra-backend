@@ -1,13 +1,15 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"libra-backend/db/sqlc"
 	"libra-backend/pkg/book"
 	"log"
 	"net/http"
-	"strconv"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DetailRequest struct {
@@ -15,14 +17,24 @@ type DetailRequest struct {
 	LibCodes []string
 }
 
-func GetBookRouter(query *sqlc.Queries) *http.ServeMux {
+func GetBookRouter(pool *pgxpool.Pool) *http.ServeMux {
 	bookRouter := http.NewServeMux()
 	bookRouter.HandleFunc("POST /detail", func(w http.ResponseWriter, r *http.Request) {
-		HandleBookRequests(w, r, query)
+		HandleBookRequests(w, r, pool)
 	})
 	return bookRouter
 }
-func HandleBookRequests(w http.ResponseWriter, r *http.Request, query *sqlc.Queries) {
+func HandleBookRequests(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
+	ctx := context.Background()
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		log.Printf("%v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	query := sqlc.New(conn)
 	var body DetailRequest
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -31,18 +43,7 @@ func HandleBookRequests(w http.ResponseWriter, r *http.Request, query *sqlc.Quer
 	}
 	json.Unmarshal(b, &body)
 
-	var LibCodeInt []int32
-
-	for _, v := range body.LibCodes {
-		i, err := strconv.Atoi(v)
-		if err != nil {
-			log.Printf("err: %#+v\n", err)
-			http.Error(w, "LibCode decode error", http.StatusInternalServerError)
-		}
-		LibCodeInt = append(LibCodeInt, int32(i))
-	}
-
-	data, err := book.RequestBookDetail(query, body.Isbn, LibCodeInt)
+	data, err := book.RequestBookDetail(query, body.Isbn, body.LibCodes)
 	if err != nil {
 		log.Printf("err: %#+v\n", err)
 		http.Error(w, "db requesting result error", http.StatusNotFound)

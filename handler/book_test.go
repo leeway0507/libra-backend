@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"libra-backend/config"
 	"libra-backend/db"
-	"libra-backend/db/sqlc"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,8 +14,8 @@ import (
 func TestBookRequest(t *testing.T) {
 	cfg := config.GetEnvConfig()
 	ctx := context.Background()
-	conn := db.ConnectPG(cfg.DATABASE_URL, ctx)
-	query := sqlc.New(conn)
+	pool := db.ConnectPGPool(cfg.DATABASE_URL, ctx)
+
 	t.Run("book detail", func(t *testing.T) {
 		mockBody := &DetailRequest{
 			Isbn:     "9791169850483",
@@ -28,7 +27,7 @@ func TestBookRequest(t *testing.T) {
 		}
 		req, _ := http.NewRequest(http.MethodPost, "/books/detail", bytes.NewReader(b))
 		resp := httptest.NewRecorder()
-		HandleBookRequests(resp, req, query)
+		HandleBookRequests(resp, req, pool)
 
 		if resp.Result().StatusCode != 200 {
 			t.Fatal("failed to respond")

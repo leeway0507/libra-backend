@@ -7,21 +7,32 @@ import (
 	"libra-backend/pkg/scrap"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func GetScrapRouter(query *sqlc.Queries) *http.ServeMux {
+func GetScrapRouter(pool *pgxpool.Pool) *http.ServeMux {
 	searchRouter := http.NewServeMux()
 	searchRouter.HandleFunc("GET /{libCode}/{isbn}", func(w http.ResponseWriter, r *http.Request) {
-		HandleScrap(w, r, query)
+		HandleScrap(w, r, pool)
 	})
 	return searchRouter
 }
 
-func HandleScrap(w http.ResponseWriter, r *http.Request, query *sqlc.Queries) {
+func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
+	ctx := context.Background()
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		log.Printf("%v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	query := sqlc.New(conn)
+
 	libCode := r.PathValue("libCode")
 	isbn := r.PathValue("isbn")
 	if isbn == "" {
@@ -47,18 +58,13 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, query *sqlc.Queries) {
 		return
 	}
 
-	ctx := context.Background()
 	for _, d := range *data {
-		ReqLibCode, err := strconv.Atoi(libCode)
-		if err != nil {
-			log.Println("fail to convert String to Int")
-			break
-		}
+
 		if strings.Contains(engine.GetLibName(), d.LibName) {
 			query.UpdateClassNum(ctx, sqlc.UpdateClassNumParams{
 				ClassNum: pgtype.Text{String: d.BookCode, Valid: true},
 				Isbn:     pgtype.Text{String: isbn, Valid: true},
-				LibCode:  pgtype.Int4{Int32: int32(ReqLibCode), Valid: true},
+				LibCode:  pgtype.Text{String: libCode, Valid: true},
 			})
 			break
 		}
