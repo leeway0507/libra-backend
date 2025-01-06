@@ -61,7 +61,7 @@ func TestSearch(t *testing.T) {
 			}
 		}
 		for _, b := range books[:10] {
-			log.Printf("%s || %v \n\n", b.Title.String, b.Score)
+			log.Printf("\n\n %s||%v \n\n", b.Title.String, b.Score)
 		}
 
 	})

@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pgvector/pgvector-go"
@@ -18,7 +19,6 @@ import (
 var cfg = config.GetEnvConfig()
 
 func GetSearchRouter(pool *pgxpool.Pool) *http.ServeMux {
-
 	searchRouter := http.NewServeMux()
 	searchRouter.HandleFunc("GET /normal", func(w http.ResponseWriter, r *http.Request) {
 		HandleSearchNormal(w, r, pool)
@@ -61,10 +61,13 @@ func HandleSearchNormal(w http.ResponseWriter, r *http.Request, pool *pgxpool.Po
 		return
 	}
 
+	start := time.Now()
 	data, err := searchQuery.DBQuery().SearchFromBooks(ctx, sqlc.SearchFromBooksParams{
 		Embedding: pgvector.NewVector(QueryResp.Embedding),
 		LibCodes:  libCodeArr,
 	})
+	end := time.Now()
+	log.Printf("query:%s time : %vms", keyword, end.Sub(start).Milliseconds())
 	if err != nil {
 		log.Printf("err: %#+v\n", err)
 		http.Error(w, "db data encoding error", http.StatusInternalServerError)
