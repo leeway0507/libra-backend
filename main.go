@@ -40,7 +40,9 @@ func main() {
 
 	router.Handle("/static/", handler.StaticFileHandler())
 
-	scrapRouter := handler.GetScrapRouter(pool)
+	scrapRouter, closeCahce := handler.GetScrapRouter(pool)
+	defer closeCahce()
+
 	router.Handle("/scrap/", http.StripPrefix("/scrap", scrapRouter))
 
 	bookRouter := handler.GetBookRouter(pool)

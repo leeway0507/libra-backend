@@ -3,25 +3,35 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"libra-backend/db/sqlc"
 	"libra-backend/pkg/scrap"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func GetScrapRouter(pool *pgxpool.Pool) *http.ServeMux {
+func GetScrapRouter(pool *pgxpool.Pool) (*http.ServeMux, func()) {
 	searchRouter := http.NewServeMux()
-	searchRouter.HandleFunc("GET /{libCode}/{isbn}", func(w http.ResponseWriter, r *http.Request) {
-		HandleScrap(w, r, pool)
+	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
+		NumCounters: 1e3,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 28, // maximum cost of cache (1GB).
+		BufferItems: 8,       // number of keys per Get buffer.
 	})
-	return searchRouter
+	if err != nil {
+		panic(err)
+	}
+	searchRouter.HandleFunc("GET /{libCode}/{isbn}", func(w http.ResponseWriter, r *http.Request) {
+		HandleScrap(w, r, pool, cache)
+	})
+	return searchRouter, cache.Close
 }
 
-func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
+func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) {
 	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
@@ -39,47 +49,61 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
 		http.Error(w, "ISBN not provided", http.StatusBadRequest)
 		return
 	}
+	// get value from cache
+	cacheKey := fmt.Sprintf("%s %s", isbn, libCode)
+	response, found := cache.Get(cacheKey)
 
-	engine := scrap.GetInstance(libCode)(isbn)
-
-	log.Printf("request info \n %#+v\n libCode:%s\n isbn:%s\n", engine.GetDistrict(), libCode, isbn)
-
-	reader, err := engine.Request()
-	if err != nil {
-		log.Printf("%v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	if found {
+		log.Printf("hit, %v", cacheKey)
 	}
 
-	data, err := engine.ExtractData(reader)
-	if err != nil {
-		log.Printf("%v", err)
-		http.Error(w, "Not found info matched with ISBN", http.StatusNotFound)
-		return
-	}
+	if !found {
+		scraper := scrap.GetInstance(libCode)
 
-	for _, d := range *data {
-
-		if strings.Contains(engine.GetLibName(), d.LibName) {
-			query.UpdateClassNum(ctx, sqlc.UpdateClassNumParams{
-				ClassNum: pgtype.Text{String: d.BookCode, Valid: true},
-				Isbn:     pgtype.Text{String: isbn, Valid: true},
-				LibCode:  pgtype.Text{String: libCode, Valid: true},
-			})
-			break
+		if scraper == nil {
+			log.Printf("Not Found Lib scraper : %s", libCode)
+			http.Error(w, "Not Found Lib scraper", http.StatusInternalServerError)
+			return
 		}
-		// query.UpdateDescription(ctx,sqlc.UpdateDescriptionParams{
-		// 	Description: pgtype.Text{String: d.},
-		// })
-	}
 
-	response, err := json.Marshal(data)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
+		scraperInstance := scraper(isbn)
 
+		log.Printf("request info \n %#+v\n libCode:%s\n isbn:%s\n", scraperInstance.GetDistrict(), libCode, isbn)
+
+		reader, err := scraperInstance.Request()
+		if err != nil {
+			log.Printf("%v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		data, err := scraperInstance.ExtractData(reader)
+		if err != nil {
+			log.Printf("%v", err)
+			http.Error(w, "Not found info matched with ISBN", http.StatusNotFound)
+			return
+		}
+
+		for _, d := range *data {
+			if strings.Contains(scraperInstance.GetLibName(), d.LibName) {
+				query.UpdateClassNum(ctx, sqlc.UpdateClassNumParams{
+					ClassNum: pgtype.Text{String: d.BookCode, Valid: true},
+					Isbn:     pgtype.Text{String: isbn, Valid: true},
+					LibCode:  pgtype.Text{String: libCode, Valid: true},
+				})
+				break
+			}
+		}
+
+		response, err = json.Marshal(data)
+		if err != nil {
+			log.Printf("Error marshalling JSON: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		cache.Set(cacheKey, response, 1)
+		cache.Wait()
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(response)
