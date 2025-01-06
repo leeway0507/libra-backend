@@ -14,7 +14,8 @@ import (
 const updateClassNum = `-- name: UpdateClassNum :exec
 UPDATE libsbooks
 SET
-    class_num = $1
+    class_num = $1,
+scrap = true
 WHERE
     isbn = $2 and lib_code = $3 AND 
     (class_num = '' OR class_num IS NULL)

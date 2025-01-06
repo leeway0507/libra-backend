@@ -46,11 +46,9 @@ type Library struct {
 }
 
 type Libsbook struct {
-	ID        int32       `json:"id"`
-	LibCode   pgtype.Text `json:"libCode"`
-	Isbn      pgtype.Text `json:"isbn"`
-	ClassNum  pgtype.Text `json:"classNum"`
-	BookCode  pgtype.Text `json:"bookCode"`
-	ShelfCode pgtype.Text `json:"shelfCode"`
-	ShelfName pgtype.Text `json:"shelfName"`
+	ID       int32       `json:"id"`
+	LibCode  pgtype.Text `json:"libCode"`
+	Isbn     pgtype.Text `json:"isbn"`
+	ClassNum pgtype.Text `json:"classNum"`
+	Scrap    pgtype.Bool `json:"scrap"`
 }
