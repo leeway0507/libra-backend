@@ -19,9 +19,10 @@ func GetInstance(libCode string) func(isbn string) model.LibScrap {
 type ScrapInstance = func(isbn, district, libname string) model.LibScrap
 
 var InstanceMap = map[string]ScrapInstance{
-	"교육청": NewEduction,
 	"양천구": NewYangcheon,
 	"도봉구": NewDobong,
+	"교육청": NewEduction,
+	"서울시": NewEduction,
 }
 
 type lib struct {
