@@ -66,12 +66,7 @@ type seoul struct {
 	model.Lib
 }
 
-type seoulInterface interface {
-	model.LibScrap
-	RequestStatus(isbn string, code string) (string, error)
-}
-
-func NewSeoul(isbn, district, libname string) seoulInterface {
+func NewSeoul(isbn, district, libname string) model.LibScrap {
 	return &seoul{
 		Lib: model.Lib{
 			Isbn:     isbn,

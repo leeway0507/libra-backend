@@ -22,7 +22,8 @@ var InstanceMap = map[string]ScrapInstance{
 	"양천구": NewYangcheon,
 	"도봉구": NewDobong,
 	"교육청": NewEduction,
-	"서울시": NewEduction,
+	"서울시": NewSeoul,
+	"강서구": NewKangSeo,
 }
 
 type lib struct {

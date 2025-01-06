@@ -1,14 +1,15 @@
 package scrap
 
 import (
+	"libra-backend/model"
 	"log"
 	"testing"
 )
 
 func TestSeoul(t *testing.T) {
-	// exist isbn : 9791163034735
+	// exist isbn : 9791197453649
 	// non exist isbn : 9791191590272
-	isbn, district, libname := "9791191590272", "서울시", "서울도서관"
+	isbn, district, libname := "9791197453649", "서울시", "서울도서관"
 	y := NewSeoul(isbn, district, libname)
 	l := NewLocalTest(y)
 
@@ -25,7 +26,13 @@ func TestSeoul(t *testing.T) {
 	})
 	t.Run("request status", func(t *testing.T) {
 		code := "CAT000001643479"
-		status, err := y.RequestStatus(isbn, code)
+		seoulInstance := &seoul{model.Lib{
+			Isbn:     isbn,
+			District: district,
+			LibName:  libname,
+		},
+		}
+		status, err := seoulInstance.RequestStatus(isbn, code)
 		if err != nil {
 			t.Fatal(err)
 		}

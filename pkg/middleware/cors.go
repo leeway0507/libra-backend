@@ -19,6 +19,12 @@ func CorsMiddleware(next http.Handler, corsAllowList []string) http.Handler {
 			return
 		}
 
+		// Block if origin or IP is not in the allow list
+		if !slices.Contains(corsAllowList, origin) {
+			http.Error(w, "Forbidden: Access denied", http.StatusForbidden)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }
