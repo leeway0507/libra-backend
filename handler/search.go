@@ -68,11 +68,13 @@ func HandleSearchNormal(w http.ResponseWriter, r *http.Request, pool *pgxpool.Po
 	})
 	end := time.Now()
 	log.Printf("query:%s time : %vms", keyword, end.Sub(start).Milliseconds())
+
 	if err != nil {
 		log.Printf("err: %#+v\n", err)
 		http.Error(w, "db data encoding error", http.StatusInternalServerError)
 		return
 	}
+
 	response, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("err: %#+v\n", err)

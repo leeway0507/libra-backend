@@ -61,20 +61,19 @@ func (q *Queries) ExtractBooksForEmbedding(ctx context.Context) ([]ExtractBooksF
 }
 
 const getBookDetail = `-- name: GetBookDetail :one
-SELECT 
-    b.id, b.isbn, b.title, b.author, b.publisher, b.publication_year, b.volume, b.image_url, b.description, b.recommendation, b.toc, b.source, b.url, b.vector_search,
-    JSON_AGG(
+SELECT b.id, b.isbn, b.title, b.author, b.publisher, b.publication_year, b.volume, b.image_url, b.description, b.recommendation, b.toc, b.source, b.url, b.vector_search, JSON_AGG(
         JSON_BUILD_OBJECT(
-            'libCode', l.lib_code,
-            'classNum', l.class_num,
-            'bookCode', l.book_code
+            'libCode', l.lib_code, 'classNum', l.class_num
         )
     ) AS lib_books
 FROM Books b
-JOIN libsbooks l 
-    ON b.isbn = l.isbn AND l.lib_code = ANY($1::VARCHAR(20)[])
-WHERE b.isbn = $2
-GROUP BY b.isbn, b.id
+    JOIN libsbooks l ON b.isbn = l.isbn
+    AND l.lib_code = ANY ($1::VARCHAR(20)[])
+WHERE
+    b.isbn = $2
+GROUP BY
+    b.isbn,
+    b.id
 `
 
 type GetBookDetailParams struct {
@@ -174,23 +173,21 @@ func (q *Queries) GetSearchResult(ctx context.Context) ([]Book, error) {
 }
 
 const searchFromBooks = `-- name: SearchFromBooks :many
-WITH FilteredLibsBooks AS (
-    SELECT DISTINCT isbn
-    FROM libsbooks
-    WHERE lib_code = ANY($2::VARCHAR(15)[])
-)
-SELECT
-    b.isbn,
-    b.title,
-    b.author,
-    b.publisher,
-    b.publication_year,
-    b.image_url,
-    (embedding <=> $1)::REAL as score
-FROM books b
-JOIN BookEmbedding e ON b.isbn = e.isbn
-JOIN FilteredLibsBooks l ON l.isbn = e.isbn
-WHERE embedding <=> $1 <= 0.8
+WITH
+    FilteredLibsBooks AS (
+        SELECT DISTINCT
+            isbn
+        FROM libsbooks
+        WHERE
+            lib_code = ANY ($2::VARCHAR(15)[])
+    )
+SELECT b.isbn, b.title, b.author, b.publisher, b.publication_year, b.image_url, (embedding <=> $1)::REAL as score
+FROM
+    books b
+    JOIN BookEmbedding e ON b.isbn = e.isbn
+    JOIN FilteredLibsBooks l ON l.isbn = e.isbn
+WHERE
+    embedding <=> $1 <= 0.8
 ORDER BY embedding <=> $1 ASC
 LIMIT 50
 `

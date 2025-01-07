@@ -31,9 +31,9 @@ func TestSearch(t *testing.T) {
 
 	})
 	t.Run("search", func(t *testing.T) {
-		keyword := "go 언어"
+		keyword := "파이썬"
 
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111015,111005"), nil)
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111314"), nil)
 		resp := httptest.NewRecorder()
 
 		HandleSearchNormal(resp, req, pool)
