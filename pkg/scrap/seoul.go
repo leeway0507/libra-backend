@@ -18,19 +18,7 @@ type StateResponse struct {
 }
 
 type Location struct {
-	IsUseBookShelf    string      `json:"isUseBookShelf"`
-	IsUseMissrepo     string      `json:"isUseMissrepo"`
-	ReserveItemCount  int         `json:"reserveItemCount"`
-	IsUseNightLoanreq string      `json:"isUseNightLoanreq"`
-	IsUseLoanreq      string      `json:"isUseLoanreq"`
-	BranchLocations   string      `json:"branchLocations"`
-	IsUseDelivery     string      `json:"isUseDelivery"`
-	BranchLoanFlag    *string     `json:"branchLoanFlag"` // nullable field
-	CtrlNo            string      `json:"ctrlno"`
-	NoHolding         []NoHolding `json:"noholding"`
-	ReserveFlag       string      `json:"reserveFlag"`
-	ReservationCount  int         `json:"reservationCount"`
-	CanReserveCount   int         `json:"canReserveCount"`
+	NoHolding []NoHolding `json:"noholding"`
 }
 
 type NoHolding struct {
@@ -59,7 +47,8 @@ type NoHolding struct {
 }
 
 var (
-	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+	RequestCookie_SEOUL       []*http.Cookie
+	RequestStatusCookie_SEOUL []*http.Cookie
 )
 
 type seoul struct {
@@ -90,16 +79,36 @@ func (e *seoul) Request() (io.ReadCloser, error) {
 	queryParam.Set("q", e.Isbn)
 	url.RawQuery = queryParam.Encode()
 
-	r, err := http.Get(url.String())
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	if r.StatusCode != 200 {
-		log.Printf("r.StatusCode: %#+v\n", r.StatusCode)
+	req.Header.Add("User-Agent", USER_AGENT)
+	req.Header.Add("Host", "lib.seoul.go.kr")
+	req.Header.Add("Referer", "https://lib.seoul.go.kr/")
+
+	if len(RequestCookie_SEOUL) != 0 {
+		for _, c := range RequestCookie_SEOUL {
+			req.AddCookie(c)
+		}
+	}
+
+	// HTTP 클라이언트 생성 및 요청 전송
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		log.Println("Error sending request:", err)
+		return nil, nil
+	}
+	if resp.StatusCode != 200 {
+		log.Printf("r.StatusCode: %#+v\n", resp.StatusCode)
 		return nil, fmt.Errorf("error status 500")
 	}
-	return r.Body, nil
+
+	RequestCookie_SEOUL = resp.Cookies()
+
+	return resp.Body, nil
 }
 
 func (e *seoul) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
@@ -124,11 +133,13 @@ func (e *seoul) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) 
 		}
 	}
 
+	bookCode := book.Find("p:nth-child(4)").Text()
+
 	Books = append(Books, model.LibBookStatus{
 		Isbn:       e.Isbn,
 		District:   e.District,
-		LibName:    book.Find("a").Text(),
-		BookCode:   book.First().Next().Next().Next().Text(),
+		LibName:    e.LibName,
+		BookCode:   bookCode,
 		BookStatus: bookStatus,
 	})
 
@@ -150,18 +161,15 @@ func (e *seoul) RequestStatus(isbn string, code string) (string, error) {
 		log.Println("Error creating request:", err)
 		return "", nil
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("User-Agent", userAgent)
+	if len(RequestStatusCookie_SEOUL) != 0 {
+		for _, c := range RequestStatusCookie_SEOUL {
+			req.AddCookie(c)
+		}
+	}
 
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("User-Agent", USER_AGENT)
 	req.Header.Add("Referer", fmt.Sprintf("https://lib.seoul.go.kr/main/searchBrief?st=KWRD&si=TOTAL&q=%s&lmtsn=000000000018&lmtst=OR&lmt0=seoulm", isbn))
-	req.AddCookie(&http.Cookie{
-		Name:  "JSESSIONID",
-		Value: "G6LnfKrN1Hpt8jLQ8et3fo72DfX13h6JmQlhSSAUQNThobLdvzRSE81ReBHhF0Oa.replibwas_servlet_engine6",
-	})
-	req.AddCookie(&http.Cookie{
-		Name:  "WL_PCID",
-		Value: "17361308347406656535282",
-	})
 
 	// HTTP 클라이언트 생성 및 요청 전송
 	client := &http.Client{}
@@ -174,6 +182,9 @@ func (e *seoul) RequestStatus(isbn string, code string) (string, error) {
 		log.Printf("r.StatusCode: %#+v\n", resp.StatusCode)
 		return "", fmt.Errorf("error status 500")
 	}
+
+	RequestStatusCookie_SEOUL = resp.Cookies()
+
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
