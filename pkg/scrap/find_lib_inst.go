@@ -2,6 +2,10 @@ package scrap
 
 import "libra-backend/model"
 
+var (
+	USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
 func GetInstance(libCode string) func(isbn string) model.LibScrap {
 	libInfo, isExist := LibCodeMap[libCode]
 	if !isExist {
@@ -19,11 +23,12 @@ func GetInstance(libCode string) func(isbn string) model.LibScrap {
 type ScrapInstance = func(isbn, district, libname string) model.LibScrap
 
 var InstanceMap = map[string]ScrapInstance{
-	"양천구": NewYangcheon,
+	"강서구": NewKangSeo,
+	"강남구": NewKangnam,
 	"도봉구": NewDobong,
+	"양천구": NewYangcheon,
 	"교육청": NewEduction,
 	"서울시": NewSeoul,
-	"강서구": NewKangSeo,
 }
 
 type lib struct {
