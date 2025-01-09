@@ -49,3 +49,11 @@ WHERE
     embedding <=> $1 <= 0.8
 ORDER BY embedding <=> $1 ASC
 LIMIT 50;
+
+-- name: ReturnExistIsbns :many
+SELECT isbn, ARRAY_AGG(lib_code)::VARCHAR[] as lib_code
+FROM libsbooks
+WHERE
+    isbn = ANY (@isbns::VARCHAR[])
+    AND lib_code = ANY (@lib_codes::VARCHAR[])
+GROUP BY isbn;

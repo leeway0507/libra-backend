@@ -172,6 +172,45 @@ func (q *Queries) GetSearchResult(ctx context.Context) ([]Book, error) {
 	return items, nil
 }
 
+const returnExistIsbns = `-- name: ReturnExistIsbns :many
+SELECT isbn, ARRAY_AGG(lib_code)::VARCHAR[] as lib_code
+FROM libsbooks
+WHERE
+    isbn = ANY ($1::VARCHAR[])
+    AND lib_code = ANY ($2::VARCHAR[])
+GROUP BY isbn
+`
+
+type ReturnExistIsbnsParams struct {
+	Isbns    []string `json:"isbns"`
+	LibCodes []string `json:"libCodes"`
+}
+
+type ReturnExistIsbnsRow struct {
+	Isbn    pgtype.Text `json:"isbn"`
+	LibCode []string    `json:"libCode"`
+}
+
+func (q *Queries) ReturnExistIsbns(ctx context.Context, arg ReturnExistIsbnsParams) ([]ReturnExistIsbnsRow, error) {
+	rows, err := q.db.Query(ctx, returnExistIsbns, arg.Isbns, arg.LibCodes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReturnExistIsbnsRow
+	for rows.Next() {
+		var i ReturnExistIsbnsRow
+		if err := rows.Scan(&i.Isbn, &i.LibCode); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchFromBooks = `-- name: SearchFromBooks :many
 WITH
     FilteredLibsBooks AS (
