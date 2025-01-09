@@ -3,12 +3,15 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"libra-backend/db/sqlc"
 	"libra-backend/pkg/book"
 	"log"
 	"net/http"
+	"strings"
 
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,13 +20,24 @@ type DetailRequest struct {
 	LibCodes []string
 }
 
-func GetBookRouter(pool *pgxpool.Pool) *http.ServeMux {
+func GetBookRouter(pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) *http.ServeMux {
 	bookRouter := http.NewServeMux()
 	bookRouter.HandleFunc("POST /detail", func(w http.ResponseWriter, r *http.Request) {
 		HandleBookRequests(w, r, pool)
 	})
+
+	// best sellers
+	bestSeller := book.NewBestSeller(cfg.ALADIN_API_KEY)
+	for _, cat := range bestSeller.GetEngName() {
+		bookRouter.HandleFunc(
+			fmt.Sprintf("GET /bestseller/%s", cat),
+			func(w http.ResponseWriter, r *http.Request) {
+				HandleBestSellerRequests(w, r, cat, bestSeller.Instance(cat), pool, cache)
+			})
+	}
 	return bookRouter
 }
+
 func HandleBookRequests(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
@@ -56,4 +70,74 @@ func HandleBookRequests(w http.ResponseWriter, r *http.Request, pool *pgxpool.Po
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(response)
+}
+
+func HandleBestSellerRequests(
+	w http.ResponseWriter,
+	r *http.Request,
+	cat string,
+	BestSellerFn book.BestSellerFn,
+	pool *pgxpool.Pool,
+	cache *ristretto.Cache[string, []byte],
+) {
+	libCode := r.URL.Query().Get("libCode")
+	cacheKey := fmt.Sprintf("%s %s", cat, libCode)
+
+	response, cacheFound := cache.Get(cacheKey)
+
+	if cacheFound {
+		log.Printf("hit, %v", cacheKey)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(response)
+	}
+
+	if !cacheFound {
+		ctx := context.Background()
+		conn, err := pool.Acquire(ctx)
+		if err != nil {
+			log.Printf("%v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		defer conn.Release()
+		query := sqlc.New(conn)
+
+		resp := BestSellerFn()
+		var isbns []string
+		for _, i := range resp.Items {
+			isbns = append(isbns, i.Isbn13)
+		}
+
+		filteredIsbns, err := query.ReturnExistIsbns(ctx, sqlc.ReturnExistIsbnsParams{
+			Isbns:    isbns,
+			LibCodes: strings.Split(libCode, ","),
+		})
+
+		if err != nil {
+			log.Printf("err: %#+v\n", err)
+			http.Error(w, "db data encoding error", http.StatusInternalServerError)
+		}
+
+		var result []book.AladinItem
+		for _, row := range filteredIsbns {
+			for _, item := range resp.Items {
+				if item.Isbn13 == row.Isbn.String {
+					item.LibCode = row.LibCode
+					result = append(result, item)
+					break
+				}
+			}
+		}
+		response, err = json.Marshal(book.AladinResponse{
+			CatValue: resp.CatValue,
+			CatName:  resp.CatName,
+			Items:    result,
+		})
+		if err != nil {
+			log.Printf("err: %#+v\n", err)
+			http.Error(w, "marshal Error", http.StatusInternalServerError)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(response)
+	}
 }

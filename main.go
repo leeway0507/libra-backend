@@ -9,6 +9,8 @@ import (
 	"libra-backend/pkg/middleware"
 	"log"
 	"net/http"
+
+	"github.com/dgraph-io/ristretto/v2"
 )
 
 var corsAllowList = []string{
@@ -35,17 +37,24 @@ func main() {
 	pool := db.ConnectPGPool(db_URL, ctx)
 	defer pool.Close()
 
+	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
+		NumCounters: 1e3,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 28, // maximum cost of cache (1GB).
+		BufferItems: 64,      // number of keys per Get buffer.
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	router := http.NewServeMux()
 	router.HandleFunc("/health", handler.GetHealth)
 
 	router.Handle("/static/", handler.StaticFileHandler())
 
-	scrapRouter, closeCahce := handler.GetScrapRouter(pool)
-	defer closeCahce()
-
+	scrapRouter := handler.GetScrapRouter(pool, cache)
 	router.Handle("/scrap/", http.StripPrefix("/scrap", scrapRouter))
 
-	bookRouter := handler.GetBookRouter(pool)
+	bookRouter := handler.GetBookRouter(pool, cache)
 	router.Handle("/book/", http.StripPrefix("/book", bookRouter))
 
 	searchRouter := handler.GetSearchRouter(pool)

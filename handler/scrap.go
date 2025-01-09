@@ -9,26 +9,20 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func GetScrapRouter(pool *pgxpool.Pool) (*http.ServeMux, func()) {
+func GetScrapRouter(pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) *http.ServeMux {
 	searchRouter := http.NewServeMux()
-	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
-		NumCounters: 1e3,     // number of keys to track frequency of (10M).
-		MaxCost:     1 << 28, // maximum cost of cache (1GB).
-		BufferItems: 8,       // number of keys per Get buffer.
-	})
-	if err != nil {
-		panic(err)
-	}
+
 	searchRouter.HandleFunc("GET /{libCode}/{isbn}", func(w http.ResponseWriter, r *http.Request) {
 		HandleScrap(w, r, pool, cache)
 	})
-	return searchRouter, cache.Close
+	return searchRouter
 }
 
 func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) {
@@ -51,13 +45,13 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cac
 	}
 	// get value from cache
 	cacheKey := fmt.Sprintf("%s %s", isbn, libCode)
-	response, found := cache.Get(cacheKey)
+	response, cacheFound := cache.Get(cacheKey)
 
-	if found {
+	if cacheFound {
 		log.Printf("hit, %v", cacheKey)
 	}
 
-	if !found {
+	if !cacheFound {
 		scraper := scrap.GetInstance(libCode)
 
 		if scraper == nil {
@@ -101,7 +95,7 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cac
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		cache.Set(cacheKey, response, 1)
+		cache.SetWithTTL(cacheKey, response, 1, time.Duration(time.Duration.Hours(6)))
 		cache.Wait()
 	}
 	w.Header().Set("Content-Type", "application/json")

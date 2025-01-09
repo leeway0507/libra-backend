@@ -22,7 +22,7 @@ func TestScrap(t *testing.T) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
 		NumCounters: 1e3,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 28, // maximum cost of cache (1GB).
-		BufferItems: 8,       // number of keys per Get buffer.
+		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
 		panic(err)
