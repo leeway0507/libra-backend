@@ -159,6 +159,7 @@ func (S *bestSeller) RequestBestSeller(pageNum, categoryId, year, month, week st
 	rawQuery.Add("TTBKey", S.ttbKey)
 	rawQuery.Add("QueryType", "Bestseller")
 	rawQuery.Add("Start", pageNum)
+	rawQuery.Add("Cover", "MidBig")
 	rawQuery.Add("MaxResults", "100")
 	rawQuery.Add("CategoryId", categoryId)
 	rawQuery.Add("SearchTarget", "Book")
@@ -205,7 +206,7 @@ func (S *bestSeller) FindKorName(value string) string {
 	}
 	return ""
 }
-func (S *bestSeller) GetEngName() []string {
+func (S *bestSeller) GetCatName() []string {
 	var result []string
 	for _, c := range *cat {
 		result = append(result, c.engName)

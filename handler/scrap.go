@@ -81,7 +81,7 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cac
 		for _, d := range *data {
 			if strings.Contains(scraperInstance.GetLibName(), d.LibName) {
 				query.UpdateClassNum(ctx, sqlc.UpdateClassNumParams{
-					ClassNum: pgtype.Text{String: d.BookCode, Valid: true},
+					ClassNum: pgtype.Text{String: d.ClassNum, Valid: true},
 					Isbn:     pgtype.Text{String: isbn, Valid: true},
 					LibCode:  pgtype.Text{String: libCode, Valid: true},
 				})

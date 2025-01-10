@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,7 +29,7 @@ func GetBookRouter(pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) *
 
 	// best sellers
 	bestSeller := book.NewBestSeller(cfg.ALADIN_API_KEY)
-	for _, cat := range bestSeller.GetEngName() {
+	for _, cat := range bestSeller.GetCatName() {
 		bookRouter.HandleFunc(
 			fmt.Sprintf("GET /bestseller/%s", cat),
 			func(w http.ResponseWriter, r *http.Request) {
@@ -139,5 +140,19 @@ func HandleBestSellerRequests(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(response)
+		cache.SetWithTTL(cacheKey, response, 1, time.Duration(timeUntilNextMonday()))
 	}
+}
+
+func timeUntilNextMonday() time.Duration {
+	now := time.Now()
+	weekday := now.Weekday()
+	// 월요일이 1이므로, 현재 요일에서 다음 월요일까지의 남은 일수를 계산
+	daysUntilMonday := (time.Monday - weekday + 7) % 7
+	if daysUntilMonday == 0 {
+		// 오늘이 월요일인 경우, 다음 주 월요일까지 계산
+		daysUntilMonday = 7
+	}
+	nextMonday := now.AddDate(0, 0, int(daysUntilMonday)).Truncate(24 * time.Hour)
+	return nextMonday.Sub(now)
 }

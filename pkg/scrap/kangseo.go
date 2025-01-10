@@ -133,7 +133,7 @@ func (e *kangseo) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    book.LibName,
-			BookCode:   book.CallNo,
+			ClassNum:   book.CallNo,
 			BookStatus: bookStatus,
 		})
 	}

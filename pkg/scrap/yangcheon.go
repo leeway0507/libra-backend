@@ -59,7 +59,7 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
 		libName := strings.Replace(s.Find(" .tit span").Text(), "[", "", 1)
 		libName = strings.Replace(libName, "]", "", 1)
-		bookCode := strings.ReplaceAll(s.Find(".list_area > dl:nth-child(5) > dd").Text(), "\t", "")
+		classNum := strings.ReplaceAll(s.Find(".list_area > dl:nth-child(5) > dd").Text(), "\t", "")
 		bookStatusRaw := strings.ReplaceAll(s.Find(".book_status").Text(), "\t", "")
 		bookStatus := strings.ReplaceAll(bookStatusRaw, "\n", "")
 
@@ -67,7 +67,7 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    libName,
-			BookCode:   strings.Trim(bookCode, " \n"),
+			ClassNum:   strings.Trim(classNum, " \n"),
 			BookStatus: bookStatus,
 		})
 	})

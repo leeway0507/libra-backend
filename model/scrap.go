@@ -24,7 +24,7 @@ type LibBookStatus struct {
 	District       string `json:"district"`
 	LibName        string `json:"libName"`
 	Isbn           string `json:"isbn"`
-	BookCode       string `json:"bookCode"`
+	ClassNum       string `json:"classNum"`
 	BookStatus     string `json:"bookStatus"`
 	Toc            string `json:"toc"`
 	Description    string `json:"description"`

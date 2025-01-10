@@ -63,13 +63,13 @@ func (e *dobong) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error)
 	var Books []model.LibBookStatus
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
 		libName := s.Find(" .tit span.lib_name").Text()
-		bookCode := strings.ReplaceAll(s.Find(".cont dd").Last().Text(), "\t", "")
+		classNum := strings.ReplaceAll(s.Find(".cont dd").Last().Text(), "\t", "")
 		bookStatusRaw := strings.ReplaceAll(s.Find(".book_status").Text(), "\t", "")
 		bookStatus := strings.ReplaceAll(bookStatusRaw, "\n", "")
 		isEbook := len(s.Find(".ebook_icon").Text()) > 0
 		if isEbook {
 			bookStatus = "전자책"
-			bookCode = "-"
+			classNum = "-"
 		}
 
 		bookReturnDate := s.Find(".cont dl:nth-child(5) dt").Text()
@@ -82,7 +82,7 @@ func (e *dobong) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error)
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    libName,
-			BookCode:   strings.Trim(bookCode, " \n"),
+			ClassNum:   strings.Trim(classNum, " \n"),
 			BookStatus: bookStatus,
 		})
 	})

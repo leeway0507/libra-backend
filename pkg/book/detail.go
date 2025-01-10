@@ -11,7 +11,6 @@ import (
 type LibArr struct {
 	LibCode  string `json:"libCode"`
 	Classnum string `json:"classNum"`
-	Bookcode string `json:"bookCode"`
 }
 type BookDetail struct {
 	sqlc.GetBookDetailRow

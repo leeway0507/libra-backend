@@ -95,16 +95,16 @@ func (e *kangnam) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error
 	var Books []model.LibBookStatus
 	doc.Find("ul.resultList li").Each(func(i int, s *goquery.Selection) {
 		libName, _ := strings.CutPrefix(s.Find("dd.site > span").First().Text(), "도서관: ")
-		bookCode := strings.ReplaceAll(s.Find("dd.data > span").Last().Text(), "\t", "")
-		bookCode = strings.ReplaceAll(bookCode, "\n", "")
-		bookCode = strings.ReplaceAll(bookCode, "위치출력", "")
+		classNum := strings.ReplaceAll(s.Find("dd.data > span").Last().Text(), "\t", "")
+		classNum = strings.ReplaceAll(classNum, "\n", "")
+		classNum = strings.ReplaceAll(classNum, "위치출력", "")
 		bookStatus := s.Find("b").Text()
 
 		Books = append(Books, model.LibBookStatus{
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    libName,
-			BookCode:   bookCode,
+			ClassNum:   classNum,
 			BookStatus: bookStatus,
 		})
 	})

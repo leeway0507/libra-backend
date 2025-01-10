@@ -133,13 +133,13 @@ func (e *seoul) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) 
 		}
 	}
 
-	bookCode := book.Find("p:nth-child(4)").Text()
+	classNum := book.Find("p:nth-child(4)").Text()
 
 	Books = append(Books, model.LibBookStatus{
 		Isbn:       e.Isbn,
 		District:   e.District,
 		LibName:    e.LibName,
-		BookCode:   bookCode,
+		ClassNum:   classNum,
 		BookStatus: bookStatus,
 	})
 

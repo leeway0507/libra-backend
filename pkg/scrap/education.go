@@ -149,7 +149,7 @@ func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 		return nil, err
 	}
 
-	bookCode := doc.Find("#position > tbody > tr > td:nth-child(3)").Text()
+	classNum := doc.Find("#position > tbody > tr > td:nth-child(3)").Text()
 	bookStatusRaw := doc.Find("#position > tbody > tr > td:nth-child(5)").Text()
 	var bookStatus string = bookStatusRaw
 	if bookStatusRaw != "대출가능" {
@@ -162,14 +162,14 @@ func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 		Isbn:       e.Isbn,
 		District:   e.District,
 		LibName:    e.targetLib.libName,
-		BookCode:   strings.Trim(bookCode, " \n"),
+		ClassNum:   strings.Trim(classNum, " \n"),
 		BookStatus: bookStatus,
 	})
 
 	otherLibs := doc.Find("table.otherLibrary > tbody > tr")
 	otherLibs.Each(func(i int, s *goquery.Selection) {
 		LibName := s.Find("td:nth-child(1)").First().Text()
-		bookCode := s.Find("td:nth-child(3)").First().Text()
+		classNum := s.Find("td:nth-child(3)").First().Text()
 		bookStatus := s.Find("td:nth-child(5)").First().Text()
 		bookBorrowDate := s.Find("td:nth-child(6)").First().Text()
 		if bookBorrowDate != " " {
@@ -180,7 +180,7 @@ func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    "서울특별시교육청" + LibName,
-			BookCode:   bookCode,
+			ClassNum:   classNum,
 			BookStatus: bookStatus,
 		})
 	})
