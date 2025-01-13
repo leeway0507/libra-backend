@@ -1,35 +1,40 @@
 -- name: UpdateDescription :exec
 UPDATE books
 SET
-    Description = $1
+    Description = $1,
+    source = $2
 WHERE
-    isbn = $2
+    isbn = $3
+    AND source != $2;
+-- name: UpdateImageUrl :exec
+UPDATE books
+SET
+    image_url = $1,
+    source = $2
+WHERE
+    isbn = $3
     AND (
-        Description = ''
-        OR Description IS NULL
+        image_url = ''
+        OR image_url IS NULL
     );
 
 -- name: UpdateRecom :exec
 UPDATE books
 SET
-    Recommendation = $1
+    Recommendation = $1,
+    source = $2
 WHERE
-    isbn = $2
-    AND (
-        Recommendation = ''
-        OR Recommendation IS NULL
-    );
+    isbn = $3
+    AND source != $2;
 
 -- name: UpdateToc :exec
 UPDATE books
 SET
-    Toc = $1
+    Toc = $1,
+    source = $2
 WHERE
-    isbn = $2
-    AND (
-        Toc = ''
-        OR Toc IS NULL
-    );
+    isbn = $3
+    AND source != $2;
 
 -- name: UpdateClassNum :exec
 UPDATE libsbooks

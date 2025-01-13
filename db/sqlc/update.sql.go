@@ -39,65 +39,86 @@ func (q *Queries) UpdateClassNum(ctx context.Context, arg UpdateClassNumParams) 
 const updateDescription = `-- name: UpdateDescription :exec
 UPDATE books
 SET
-    Description = $1
+    Description = $1,
+    source = $2
 WHERE
-    isbn = $2
-    AND (
-        Description = ''
-        OR Description IS NULL
-    )
+    isbn = $3
+    AND source != $2
 `
 
 type UpdateDescriptionParams struct {
 	Description pgtype.Text `json:"description"`
+	Source      pgtype.Text `json:"source"`
 	Isbn        pgtype.Text `json:"isbn"`
 }
 
 func (q *Queries) UpdateDescription(ctx context.Context, arg UpdateDescriptionParams) error {
-	_, err := q.db.Exec(ctx, updateDescription, arg.Description, arg.Isbn)
+	_, err := q.db.Exec(ctx, updateDescription, arg.Description, arg.Source, arg.Isbn)
+	return err
+}
+
+const updateImageUrl = `-- name: UpdateImageUrl :exec
+UPDATE books
+SET
+    image_url = $1,
+    source = $2
+WHERE
+    isbn = $3
+    AND (
+        image_url = ''
+        OR image_url IS NULL
+    )
+`
+
+type UpdateImageUrlParams struct {
+	ImageUrl pgtype.Text `json:"imageUrl"`
+	Source   pgtype.Text `json:"source"`
+	Isbn     pgtype.Text `json:"isbn"`
+}
+
+func (q *Queries) UpdateImageUrl(ctx context.Context, arg UpdateImageUrlParams) error {
+	_, err := q.db.Exec(ctx, updateImageUrl, arg.ImageUrl, arg.Source, arg.Isbn)
 	return err
 }
 
 const updateRecom = `-- name: UpdateRecom :exec
 UPDATE books
 SET
-    Recommendation = $1
+    Recommendation = $1,
+    source = $2
 WHERE
-    isbn = $2
-    AND (
-        Recommendation = ''
-        OR Recommendation IS NULL
-    )
+    isbn = $3
+    AND source != $2
 `
 
 type UpdateRecomParams struct {
 	Recommendation pgtype.Text `json:"recommendation"`
+	Source         pgtype.Text `json:"source"`
 	Isbn           pgtype.Text `json:"isbn"`
 }
 
 func (q *Queries) UpdateRecom(ctx context.Context, arg UpdateRecomParams) error {
-	_, err := q.db.Exec(ctx, updateRecom, arg.Recommendation, arg.Isbn)
+	_, err := q.db.Exec(ctx, updateRecom, arg.Recommendation, arg.Source, arg.Isbn)
 	return err
 }
 
 const updateToc = `-- name: UpdateToc :exec
 UPDATE books
 SET
-    Toc = $1
+    Toc = $1,
+    source = $2
 WHERE
-    isbn = $2
-    AND (
-        Toc = ''
-        OR Toc IS NULL
-    )
+    isbn = $3
+    AND source != $2
 `
 
 type UpdateTocParams struct {
-	Toc  pgtype.Text `json:"toc"`
-	Isbn pgtype.Text `json:"isbn"`
+	Toc    pgtype.Text `json:"toc"`
+	Source pgtype.Text `json:"source"`
+	Isbn   pgtype.Text `json:"isbn"`
 }
 
 func (q *Queries) UpdateToc(ctx context.Context, arg UpdateTocParams) error {
-	_, err := q.db.Exec(ctx, updateToc, arg.Toc, arg.Isbn)
+	_, err := q.db.Exec(ctx, updateToc, arg.Toc, arg.Source, arg.Isbn)
 	return err
 }

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -105,9 +106,22 @@ func HandleBestSellerRequests(
 
 		resp := BestSellerFn()
 		var isbns []string
-		for _, i := range resp.Items {
-			isbns = append(isbns, i.Isbn13)
+		start := time.Now()
+		for _, item := range resp.Items {
+			isbns = append(isbns, item.Isbn13)
+			query.UpdateDescription(ctx, sqlc.UpdateDescriptionParams{
+				Description: pgtype.Text{String: item.Description, Valid: true},
+				Isbn:        pgtype.Text{String: item.Isbn13, Valid: true},
+				Source:      pgtype.Text{String: "aladin", Valid: true},
+			})
+			query.UpdateImageUrl(ctx, sqlc.UpdateImageUrlParams{
+				ImageUrl: pgtype.Text{String: item.Cover, Valid: true},
+				Isbn:     pgtype.Text{String: item.Isbn13, Valid: true},
+				Source:   pgtype.Text{String: "aladin", Valid: true},
+			})
 		}
+		end := time.Now()
+		log.Printf("time : %vms", end.Sub(start).Milliseconds())
 
 		filteredIsbns, err := query.ReturnExistIsbns(ctx, sqlc.ReturnExistIsbnsParams{
 			Isbns:    isbns,
@@ -141,6 +155,7 @@ func HandleBestSellerRequests(
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(response)
 		cache.SetWithTTL(cacheKey, response, 1, time.Duration(timeUntilNextMonday()))
+
 	}
 }
 
