@@ -15,7 +15,7 @@ import (
 
 var corsAllowList = []string{
 	"http://localhost:5173",
-	"https://libra-client.pages.dev",
+	"https://libsearch.xyz",
 }
 
 var cfg = config.GetEnvConfig()
