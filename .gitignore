@@ -36,3 +36,7 @@ test.html
 
 build.env
 test_html
+pkg/kiwi/mac
+pkg/kiwi/linux
+pkg/kiwi/models
+pkg/search/query

@@ -8,6 +8,7 @@ import (
 	"libra-backend/config"
 	"libra-backend/db"
 	"libra-backend/db/sqlc"
+	"libra-backend/pkg/kiwi"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -18,25 +19,25 @@ func TestSearch(t *testing.T) {
 	cfg := config.GetEnvConfig()
 	ctx := context.Background()
 	pool := db.ConnectPGPool(cfg.DATABASE_URL, ctx)
+	kb := kiwi.NewBuilder(cfg.TOKENIZER_PATH, 1, kiwi.KIWI_BUILD_INTEGRATE_ALLOMORPH)
 	t.Run("no search query", func(t *testing.T) {
 		keyword := ""
-
 		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search?", "q=", keyword), nil)
 		resp := httptest.NewRecorder()
 
-		HandleSearchNormal(resp, req, pool)
+		HandleSearchQuery(resp, req, pool, kb)
 		if resp.Result().StatusCode != 400 {
 			t.Fatal("should return 400")
 		}
 
 	})
 	t.Run("search", func(t *testing.T) {
-		keyword := "파이썬"
+		keyword := "도커"
 
 		req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/search/normal", "?q=", keyword, "&", "libCode=", "111314"), nil)
 		resp := httptest.NewRecorder()
 
-		HandleSearchNormal(resp, req, pool)
+		HandleSearchQuery(resp, req, pool, kb)
 		if resp.Result().StatusCode != 200 {
 			t.Fatal(resp.Body)
 		}
@@ -55,13 +56,7 @@ func TestSearch(t *testing.T) {
 			t.Fatal("len book is 0")
 		}
 		for _, b := range books {
-			if b.Score > 0.8 {
-				log.Printf("b: %#+v\n", b)
-				log.Fatal("score over 0.8")
-			}
-		}
-		for _, b := range books[:10] {
-			log.Printf("\n\n %s||%v \n\n", b.Title.String, b.Score)
+			log.Printf("\n %s||%v \n", b.Title.String, b.Score)
 		}
 
 	})

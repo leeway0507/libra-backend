@@ -11,7 +11,7 @@ fi
 
 # 1. 바이너리 빌드
 echo "🔨 빌드 중..."
-GOOS=linux GOARCH=amd64 go build -trimpath -o "$BUILD_DIR/$APP_NAME"
+GOOS=linux GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-unknown-linux-gnu-gcc go build -trimpath -o "$BUILD_DIR/$APP_NAME"
 if [ $? -ne 0 ]; then
     echo "❌ 빌드 실패"
     exit 1
