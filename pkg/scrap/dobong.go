@@ -16,7 +16,7 @@ type dobong struct {
 	model.Lib
 }
 
-func NewDobong(isbn, district, libname string) model.LibScrap {
+func NewDobong(isbn, district, libname string) model.BookStatusScraper {
 	return &dobong{
 		Lib: model.Lib{
 			Isbn:     isbn,

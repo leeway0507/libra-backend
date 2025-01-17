@@ -26,7 +26,7 @@ type LibInfo struct {
 	pageName string
 }
 
-func NewEduction(isbn, district, libname string) model.LibScrap {
+func NewEduction(isbn, district, libname string) model.BookStatusScraper {
 	if !slices.Contains(LibNameArr, libname) {
 		return nil
 	}

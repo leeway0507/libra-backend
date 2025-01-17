@@ -20,12 +20,12 @@ func GetScrapRouter(pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) 
 	searchRouter := http.NewServeMux()
 
 	searchRouter.HandleFunc("GET /{libCode}/{isbn}", func(w http.ResponseWriter, r *http.Request) {
-		HandleScrap(w, r, pool, cache)
+		HandleBorrowStatusScraper(w, r, pool, cache)
 	})
 	return searchRouter
 }
 
-func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) {
+func HandleBorrowStatusScraper(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) {
 	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
@@ -34,7 +34,6 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cac
 		return
 	}
 	defer conn.Release()
-
 	query := sqlc.New(conn)
 
 	libCode := r.PathValue("libCode")
@@ -51,16 +50,17 @@ func HandleScrap(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, cac
 		log.Printf("hit, %v", cacheKey)
 	}
 
+	// scrap borrow status for libs
 	if !cacheFound {
-		scraper := scrap.GetInstance(libCode)
+		borrowStatusScraper := scrap.GetBorrowScraperInstance(libCode)
 
-		if scraper == nil {
+		if borrowStatusScraper == nil {
 			log.Printf("Not Found Lib scraper : %s", libCode)
 			http.Error(w, "Not Found Lib scraper", http.StatusInternalServerError)
 			return
 		}
 
-		scraperInstance := scraper(isbn)
+		scraperInstance := borrowStatusScraper(isbn)
 
 		log.Printf("request info \n %#+v\n libCode:%s\n isbn:%s\n", scraperInstance.GetDistrict(), libCode, isbn)
 

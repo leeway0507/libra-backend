@@ -33,7 +33,7 @@ func TestScrap(t *testing.T) {
 		req.SetPathValue("libCode", "111005")
 		req.SetPathValue("isbn", "9791196411725")
 		resp := httptest.NewRecorder()
-		HandleScrap(resp, req, pool, cache)
+		HandleBorrowStatusScraper(resp, req, pool, cache)
 
 		if resp.Result().StatusCode != 200 {
 			b, _ := io.ReadAll(resp.Body)

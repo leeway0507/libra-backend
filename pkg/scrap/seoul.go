@@ -55,7 +55,7 @@ type seoul struct {
 	model.Lib
 }
 
-func NewSeoul(isbn, district, libname string) model.LibScrap {
+func NewSeoul(isbn, district, libname string) model.BookStatusScraper {
 	return &seoul{
 		Lib: model.Lib{
 			Isbn:     isbn,

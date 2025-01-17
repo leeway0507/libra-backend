@@ -6,23 +6,23 @@ var (
 	USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
-func GetInstance(libCode string) func(isbn string) model.LibScrap {
+func GetBorrowScraperInstance(libCode string) func(isbn string) model.BookStatusScraper {
 	libInfo, isExist := LibCodeMap[libCode]
 	if !isExist {
 		return nil
 	}
-	scrapInstance, isExist := InstanceMap[libInfo.District]
+	scraperInstance, isExist := InstanceMap[libInfo.District]
 	if !isExist {
 		return nil
 	}
-	return func(isbn string) model.LibScrap {
-		return scrapInstance(isbn, libInfo.District, libInfo.LibName)
+	return func(isbn string) model.BookStatusScraper {
+		return scraperInstance(isbn, libInfo.District, libInfo.LibName)
 	}
 }
 
-type ScrapInstance = func(isbn, district, libname string) model.LibScrap
+type ScraperInstance = func(isbn, district, libname string) model.BookStatusScraper
 
-var InstanceMap = map[string]ScrapInstance{
+var InstanceMap = map[string]ScraperInstance{
 	"강서구": NewKangSeo,
 	"강남구": NewKangnam,
 	"도봉구": NewDobong,

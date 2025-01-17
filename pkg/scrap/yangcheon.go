@@ -16,7 +16,7 @@ type yangcheon struct {
 	model.Lib
 }
 
-func NewYangcheon(isbn, district, libname string) model.LibScrap {
+func NewYangcheon(isbn, district, libname string) model.BookStatusScraper {
 	return &yangcheon{
 		Lib: model.Lib{
 			Isbn:     isbn,

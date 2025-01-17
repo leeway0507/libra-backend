@@ -20,7 +20,7 @@ var (
 	CookieKangnam []*http.Cookie
 )
 
-func NewKangnam(isbn, district, libname string) model.LibScrap {
+func NewKangnam(isbn, district, libname string) model.BookStatusScraper {
 	return &kangnam{
 		Lib: model.Lib{
 			Isbn:     isbn,

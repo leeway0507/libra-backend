@@ -43,7 +43,7 @@ type kangseo struct {
 	model.Lib
 }
 
-func NewKangSeo(isbn, district, libname string) model.LibScrap {
+func NewKangSeo(isbn, district, libname string) model.BookStatusScraper {
 	return &kangseo{
 		Lib: model.Lib{
 			Isbn:     isbn,

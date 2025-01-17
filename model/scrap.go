@@ -2,7 +2,7 @@ package model
 
 import "io"
 
-type LibScrap interface {
+type BookStatusScraper interface {
 	Request() (io.ReadCloser, error)
 	ExtractData(body io.ReadCloser) (*[]LibBookStatus, error)
 	GetDistrict() string
@@ -10,7 +10,7 @@ type LibScrap interface {
 	GetLibName() string
 }
 type LocalScrap interface {
-	LibScrap
+	BookStatusScraper
 	SaveReqToLocal()
 	ExtractDataFromLocal() (*[]LibBookStatus, error)
 }

@@ -10,12 +10,12 @@ import (
 )
 
 type Local struct {
-	model.LibScrap
+	model.BookStatusScraper
 }
 
-func NewLocalTest(LibScrap model.LibScrap) model.LocalScrap {
+func NewLocalTest(LibScrap model.BookStatusScraper) model.LocalScrap {
 	return &Local{
-		LibScrap: LibScrap,
+		BookStatusScraper: LibScrap,
 	}
 }
 
