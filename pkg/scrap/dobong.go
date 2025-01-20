@@ -3,7 +3,6 @@ package scrap
 import (
 	"fmt"
 	"io"
-	"libra-backend/model"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,12 +12,12 @@ import (
 )
 
 type dobong struct {
-	model.Lib
+	Lib
 }
 
-func NewDobong(isbn, district, libname string) model.BookStatusScraper {
+func NewDobong(isbn, district, libname string) BookStatusScraper {
 	return &dobong{
-		Lib: model.Lib{
+		Lib: Lib{
 			Isbn:     isbn,
 			District: district,
 			LibName:  libname,
@@ -54,13 +53,13 @@ func (e *dobong) Request() (io.ReadCloser, error) {
 	return r.Body, nil
 }
 
-func (e *dobong) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
+func (e *dobong) ExtractData(body io.ReadCloser) (*[]LibBookStatus, error) {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, err
 	}
-	var Books []model.LibBookStatus
+	var Books []LibBookStatus
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
 		libName := s.Find(" .tit span.lib_name").Text()
 		classNum := strings.ReplaceAll(s.Find(".cont dd").Last().Text(), "\t", "")
@@ -78,7 +77,7 @@ func (e *dobong) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error)
 			bookStatus = fmt.Sprintf("%s(%s)", bookStatus, date)
 		}
 
-		Books = append(Books, model.LibBookStatus{
+		Books = append(Books, LibBookStatus{
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    libName,

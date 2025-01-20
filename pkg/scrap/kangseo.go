@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"libra-backend/model"
 	"log"
 	"net/http"
 	"net/url"
@@ -40,12 +39,12 @@ type BookResponse struct {
 }
 
 type kangseo struct {
-	model.Lib
+	Lib
 }
 
-func NewKangSeo(isbn, district, libname string) model.BookStatusScraper {
+func NewKangSeo(isbn, district, libname string) BookStatusScraper {
 	return &kangseo{
-		Lib: model.Lib{
+		Lib: Lib{
 			Isbn:     isbn,
 			District: district,
 			LibName:  libname,
@@ -112,7 +111,7 @@ func (e *kangseo) Request() (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (e *kangseo) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
+func (e *kangseo) ExtractData(body io.ReadCloser) (*[]LibBookStatus, error) {
 
 	b, err := io.ReadAll(body)
 	if err != nil {
@@ -123,13 +122,13 @@ func (e *kangseo) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error
 	if err != nil {
 		return nil, err
 	}
-	var Books []model.LibBookStatus
+	var Books []LibBookStatus
 	for _, book := range bookList.Contents.BookList {
 		var bookStatus string = book.WorkingStatus
 		if bookStatus == "대출중" {
 			bookStatus = bookStatus + "(반납예정일:" + book.ReturnPlanDate + ")"
 		}
-		Books = append(Books, model.LibBookStatus{
+		Books = append(Books, LibBookStatus{
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    book.LibName,

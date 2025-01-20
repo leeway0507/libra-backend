@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"libra-backend/model"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,16 +12,16 @@ import (
 )
 
 type kangnam struct {
-	model.Lib
+	Lib
 }
 
 var (
 	CookieKangnam []*http.Cookie
 )
 
-func NewKangnam(isbn, district, libname string) model.BookStatusScraper {
+func NewKangnam(isbn, district, libname string) BookStatusScraper {
 	return &kangnam{
-		Lib: model.Lib{
+		Lib: Lib{
 			Isbn:     isbn,
 			District: district,
 			LibName:  libname,
@@ -86,13 +85,13 @@ func (e *kangnam) Request() (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (e *kangnam) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
+func (e *kangnam) ExtractData(body io.ReadCloser) (*[]LibBookStatus, error) {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, err
 	}
-	var Books []model.LibBookStatus
+	var Books []LibBookStatus
 	doc.Find("ul.resultList li").Each(func(i int, s *goquery.Selection) {
 		libName, _ := strings.CutPrefix(s.Find("dd.site > span").First().Text(), "도서관: ")
 		classNum := strings.ReplaceAll(s.Find("dd.data > span").Last().Text(), "\t", "")
@@ -100,7 +99,7 @@ func (e *kangnam) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error
 		classNum = strings.ReplaceAll(classNum, "위치출력", "")
 		bookStatus := s.Find("b").Text()
 
-		Books = append(Books, model.LibBookStatus{
+		Books = append(Books, LibBookStatus{
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    libName,

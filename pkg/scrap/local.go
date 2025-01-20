@@ -2,18 +2,17 @@ package scrap
 
 import (
 	"io"
-	"libra-backend/model"
-	"libra-backend/utils"
+	"libra-backend/pkg/utils"
 	"log"
 	"os"
 	"path/filepath"
 )
 
 type Local struct {
-	model.BookStatusScraper
+	BookStatusScraper
 }
 
-func NewLocalTest(LibScrap model.BookStatusScraper) model.LocalScrap {
+func NewLocalTest(LibScrap BookStatusScraper) LocalScrap {
 	return &Local{
 		BookStatusScraper: LibScrap,
 	}
@@ -47,7 +46,7 @@ func (L *Local) SaveReqToLocal() {
 	f.Write(b)
 }
 
-func (L *Local) ExtractDataFromLocal() (*[]model.LibBookStatus, error) {
+func (L *Local) ExtractDataFromLocal() (*[]LibBookStatus, error) {
 	cd := utils.GetCurrentFolderDir()
 	libType := L.GetDistrict()
 	f, err := os.Open(filepath.Join(cd, "test_html", libType+".html"))

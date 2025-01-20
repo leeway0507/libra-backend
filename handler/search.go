@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"libra-backend/config"
 	"libra-backend/db/sqlc"
-	"libra-backend/pb"
-	"libra-backend/pkg/bm25"
 	"libra-backend/pkg/kiwi"
+	"libra-backend/pkg/pb"
 	"libra-backend/pkg/search"
 	"log"
 	"net/http"
@@ -25,15 +24,16 @@ func GetSearchRouter(pool *pgxpool.Pool) (*http.ServeMux, func() int) {
 	kiwi.Version()
 	log.Println("tokenizer path :", cfg.TOKENIZER_PATH)
 	kb := kiwi.NewBuilder(cfg.TOKENIZER_PATH, 1, kiwi.KIWI_BUILD_INTEGRATE_ALLOMORPH)
+	k := kb.Build()
 
 	searchRouter := http.NewServeMux()
 	searchRouter.HandleFunc("GET /normal", func(w http.ResponseWriter, r *http.Request) {
-		HandleSearchQuery(w, r, pool, kb)
+		HandleSearchQuery(w, r, pool, k)
 	})
-	return searchRouter, kb.Close
+	return searchRouter, k.Close
 }
 
-func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, kb *kiwi.KiwiBuilder) {
+func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, k *kiwi.Kiwi) {
 	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
@@ -68,8 +68,20 @@ func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Poo
 	}
 
 	start := time.Now()
+	keywords, err := k.Analyze_Noun(keyword, 1, kiwi.KIWI_MATCH_ALL)
+	if err != nil {
+		log.Printf("parseError: %#+v\n", err)
+	}
+
+	keywords = append(keywords, keyword)
+	log.Printf("keywords: %#+v\n", keywords)
+	var keywordForLike []string
+	for _, v := range keywords {
+		keywordForLike = append(keywordForLike, "%"+v+"%")
+	}
 	data, err := searchQuery.DBQuery().SearchFromBooks(ctx, sqlc.SearchFromBooksParams{
 		Embedding: pgvector.NewVector(QueryResp.Embedding),
+		Keywords:  keywordForLike,
 		LibCodes:  strings.Split(libCode, ","),
 	})
 	end := time.Now()
@@ -80,59 +92,10 @@ func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Poo
 		http.Error(w, "db data encoding error", http.StatusInternalServerError)
 		return
 	}
-
-	// RE_RANKING Based on Vector Search Result
-	// Algorithm : OKAPI BM25
-	if len(data) != 0 {
-		// add keywords
-		start := time.Now()
-		keywords := strings.Split(keyword, " ")
-		kb.AddWord(keyword, "NNP", 1)
-		for i, k := range keywords {
-			if k == keyword {
-				break
-			}
-			score := 0.9 - float32(i)*0.2
-			kb.AddWord(k, "NNP", max(0, score))
-		}
-		// load builder
-		k := kb.Build()
-		log.Println("kiwi load:", time.Since(start).String())
-		defer k.Close()
-
-		tokenizer := func(s string) []string {
-			tokens, err := k.Analyze(s, 1, kiwi.KIWI_MATCH_ALL)
-			if err != nil {
-				log.Println("tokenizer error", err)
-				return []string{}
-			}
-			return tokens
-		}
-
-		var corpus []string
-		for _, d := range data {
-			corpus = append(corpus, d.Title.String)
-		}
-
-		bm25, err := bm25.NewBM25Okapi(corpus, tokenizer, 2, 0.75, nil)
-		if err != nil {
-			log.Println("bm25:", err)
-		}
-		log.Println("keyword", keyword)
-		tokenizedQuery := tokenizer(keyword)
-		scores, err := bm25.GetScores(tokenizedQuery)
-		if err != nil {
-			log.Println(err)
-		}
-		// update score
-		for i, v := range scores {
-			data[i].Score = (1 - data[i].Score) + max(0, float32(v)*1.25)
-		}
-		// sort
-		sort.Slice(data, func(i, j int) bool {
-			return float64(data[i].Score) > float64(data[j].Score)
-		})
-	}
+	// sort
+	sort.Slice(data, func(i, j int) bool {
+		return float64(data[i].Score) < float64(data[j].Score)
+	})
 
 	response, err := json.Marshal(data)
 	if err != nil {

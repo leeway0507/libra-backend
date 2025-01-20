@@ -218,21 +218,20 @@ WITH
             isbn
         FROM libsbooks
         WHERE
-            lib_code = ANY ($2::VARCHAR(15)[])
+            lib_code = ANY ($3::VARCHAR(15)[])
     )
 SELECT b.isbn, b.title, b.author, b.publisher, b.publication_year, b.image_url, (embedding <=> $1)::REAL as score
 FROM
     books b
     JOIN BookEmbedding e ON b.isbn = e.isbn
     JOIN FilteredLibsBooks l ON l.isbn = e.isbn
-WHERE
-    embedding <=> $1 <= 0.8
-ORDER BY embedding <=> $1 ASC
-LIMIT 50
+WHERE b.title ILIKE ANY ($2::VARCHAR(100)[])
+LIMIT 500
 `
 
 type SearchFromBooksParams struct {
 	Embedding pgvector.Vector `json:"embedding"`
+	Keywords  []string        `json:"keywords"`
 	LibCodes  []string        `json:"libCodes"`
 }
 
@@ -247,7 +246,7 @@ type SearchFromBooksRow struct {
 }
 
 func (q *Queries) SearchFromBooks(ctx context.Context, arg SearchFromBooksParams) ([]SearchFromBooksRow, error) {
-	rows, err := q.db.Query(ctx, searchFromBooks, arg.Embedding, arg.LibCodes)
+	rows, err := q.db.Query(ctx, searchFromBooks, arg.Embedding, arg.Keywords, arg.LibCodes)
 	if err != nil {
 		return nil, err
 	}

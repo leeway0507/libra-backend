@@ -17,6 +17,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"slices"
 )
 
 func Version() {
@@ -68,7 +69,7 @@ type TokenInfo struct {
 }
 
 func (k *Kiwi) Analyze(text string, topN int, options AnalyzeOption) ([]string, error) {
-	kiwiResH := C.kiwi_analyze(k.handler, C.CString(k.RemoveSpecialChars(text)), C.int(topN), C.int(options), nil, nil)
+	kiwiResH := C.kiwi_analyze(k.handler, C.CString(text), C.int(topN), C.int(options), nil, nil)
 	defer C.kiwi_res_close(kiwiResH)
 
 	resSize := int(C.kiwi_res_size(kiwiResH))
@@ -81,11 +82,41 @@ func (k *Kiwi) Analyze(text string, topN int, options AnalyzeOption) ([]string, 
 	}
 	return res, nil
 }
+func (k *Kiwi) Analyze_Noun(text string, topN int, options AnalyzeOption) ([]string, error) {
+	kiwiResH := C.kiwi_analyze(k.handler, C.CString(text), C.int(topN), C.int(options), nil, nil)
+	defer C.kiwi_res_close(kiwiResH)
+
+	resSize := int(C.kiwi_res_size(kiwiResH))
+	var res []string
+	for i := 0; i < resSize; i++ {
+		tokenCount := int(C.kiwi_res_word_num(kiwiResH, C.int(i)))
+		for j := 0; j < tokenCount; j++ {
+			pos, _ := ParsePOSType(C.GoString(C.kiwi_res_tag(kiwiResH, C.int(i), C.int(j))))
+
+			if slices.Contains([]POSType{POS_NNG, POS_NNP, POS_UNKNOWN, POS_NNB, POS_NP, POS_NR, POS_SL}, pos) {
+				res = append(res, C.GoString(C.kiwi_res_form(kiwiResH, C.int(i), C.int(j))))
+			}
+
+		}
+	}
+	return k.RemoveDuplicates(res), nil
+}
 func (k *Kiwi) RemoveSpecialChars(input string) string {
-	// 한글, 영어 알파벳, 숫자, 스페이스만 허용하는 정규 표현식
 	re := regexp.MustCompile(`[^a-zA-Z0-9ㄱ-ㅎㅏ-ㅣ가-힣 ]+`)
-	// 특수 문자를 빈 문자열로 대체
 	return re.ReplaceAllString(input, " ")
+}
+func (k *Kiwi) RemoveDuplicates(tokens []string) []string {
+	t := make(map[string]bool)
+	for _, v := range tokens {
+		if !t[v] {
+			t[v] = true
+		}
+	}
+	keys := make([]string, 0, len(t))
+	for k2 := range t {
+		keys = append(keys, k2)
+	}
+	return keys
 }
 func (k *Kiwi) Close() int {
 	if k.handler != nil {

@@ -17,7 +17,7 @@ type BookDetail struct {
 	LibBooks []LibArr `json:"libBooks"`
 }
 
-func RequestBookDetail(query *sqlc.Queries, isbn string, libCodes []string) (*BookDetail, error) {
+func GetBookDetail(query *sqlc.Queries, isbn string, libCodes []string) (*BookDetail, error) {
 	params := sqlc.GetBookDetailParams{
 		Isbn:     pgtype.Text{String: isbn, Valid: true},
 		LibCodes: libCodes,

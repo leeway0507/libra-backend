@@ -1,7 +1,6 @@
 package scrap
 
 import (
-	"libra-backend/model"
 	"log"
 	"testing"
 )
@@ -26,7 +25,7 @@ func TestSeoul(t *testing.T) {
 	})
 	t.Run("request status", func(t *testing.T) {
 		code := "CAT000001643479"
-		seoulInstance := &seoul{model.Lib{
+		seoulInstance := &seoul{Lib{
 			Isbn:     isbn,
 			District: district,
 			LibName:  libname,

@@ -25,7 +25,7 @@ type DetailRequest struct {
 func GetBookRouter(pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) *http.ServeMux {
 	bookRouter := http.NewServeMux()
 	bookRouter.HandleFunc("POST /detail", func(w http.ResponseWriter, r *http.Request) {
-		HandleBookRequests(w, r, pool)
+		HandleBookDetailRequests(w, r, pool)
 	})
 
 	// best sellers
@@ -40,7 +40,7 @@ func GetBookRouter(pool *pgxpool.Pool, cache *ristretto.Cache[string, []byte]) *
 	return bookRouter
 }
 
-func HandleBookRequests(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
+func HandleBookDetailRequests(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
@@ -59,7 +59,7 @@ func HandleBookRequests(w http.ResponseWriter, r *http.Request, pool *pgxpool.Po
 	}
 	json.Unmarshal(b, &body)
 
-	data, err := book.RequestBookDetail(query, body.Isbn, body.LibCodes)
+	data, err := book.GetBookDetail(query, body.Isbn, body.LibCodes)
 	if err != nil {
 		log.Printf("err: %#+v\n", err)
 		http.Error(w, "db requesting result error", http.StatusNotFound)

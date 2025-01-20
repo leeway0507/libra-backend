@@ -3,28 +3,53 @@ package kiwi
 import (
 	"libra-backend/pkg/bm25"
 	"log"
+	"reflect"
+	"slices"
 	"testing"
 )
 
 func TestKiwi(t *testing.T) {
+	kb := NewBuilder("./models/base", 1 /*=numThread*/, KIWI_BUILD_INTEGRATE_ALLOMORPH /*=options*/)
 
+	k := kb.Build()
+	defer k.Close() // don't forget to Close()!
 	t.Run("version", func(t *testing.T) {
 		Version()
 	})
 
 	t.Run("Analyze", func(t *testing.T) {
+		keyword := "도커, 컨테이너 빌드업! Docker, container build-up! : 최적의 컨테이너 서비스를 위한 도커 활용법"
 		func() {
-			kb := NewBuilder("./models/base", 1 /*=numThread*/, KIWI_BUILD_INTEGRATE_ALLOMORPH /*=options*/)
-			kb.AddWord("코딩냄비", "NNP", 0)
-
-			k := kb.Build()
-			defer k.Close() // don't forget to Close()!
-
-			_, err := k.Analyze("Do it! 쉽게 배우는 파이썬 데이터 분석 : 데이터 분석 프로젝트 전 과정 수록!", 1 /*=topN*/, KIWI_MATCH_ALL)
+			tokens, err := k.Analyze(keyword, 1 /*=topN*/, KIWI_MATCH_NORMALIZE_CODA)
 			if err != nil {
 				t.Fatal(err)
 			}
+			log.Printf("tokens: %#+v\n", tokens)
 		}()
+
+	})
+	t.Run("Analyze_Noun", func(t *testing.T) {
+		keyword := "도커, 컨테이너 빌드업! Docker, container build-up! : 최적의 컨테이너 서비스를 위한 도커 활용법"
+		func() {
+			tokens, err := k.Analyze_Noun(keyword, 1 /*=topN*/, KIWI_MATCH_NORMALIZE_CODA)
+			if err != nil {
+				t.Fatal(err)
+			}
+			log.Printf("tokens: %#+v\n", tokens)
+		}()
+	})
+	t.Run("Remove Duplicates", func(t *testing.T) {
+		tokens := []string{"도커", "컨테이너", "빌드업", "최적", "컨테이너", "서비스", "도커", "활용법"}
+		candidate := k.RemoveDuplicates(tokens)
+		result := []string{"서비스", "활용법", "도커", "컨테이너", "빌드업", "최적"}
+
+		slices.Sort(candidate)
+		slices.Sort(result)
+		if !reflect.DeepEqual(candidate, result) {
+			log.Printf("candidate: %#+v\n", candidate)
+			log.Printf("result: %#+v\n", result)
+			log.Fatal("candidate doesn't match with result")
+		}
 
 	})
 

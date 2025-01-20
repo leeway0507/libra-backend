@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"libra-backend/model"
-	"libra-backend/utils"
+	"libra-backend/pkg/utils"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,7 +15,7 @@ import (
 )
 
 type education struct {
-	model.Lib
+	Lib
 	targetLib LibInfo
 }
 type LibInfo struct {
@@ -26,13 +25,13 @@ type LibInfo struct {
 	pageName string
 }
 
-func NewEduction(isbn, district, libname string) model.BookStatusScraper {
+func NewEduction(isbn, district, libname string) BookStatusScraper {
 	if !slices.Contains(LibNameArr, libname) {
 		return nil
 	}
 
 	return &education{
-		Lib: model.Lib{
+		Lib: Lib{
 			Isbn:     isbn,
 			District: district,
 		},
@@ -143,7 +142,7 @@ func (e *education) requestToSpec(url string) (io.ReadCloser, error) {
 
 }
 
-func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
+func (e *education) ExtractData(body io.ReadCloser) (*[]LibBookStatus, error) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, err
@@ -157,8 +156,8 @@ func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 		ss2 := utils.RemoveEmptyStringInSlice(ss)
 		bookStatus = strings.Join(ss2, " ")
 	}
-	var Books []model.LibBookStatus
-	Books = append(Books, model.LibBookStatus{
+	var Books []LibBookStatus
+	Books = append(Books, LibBookStatus{
 		Isbn:       e.Isbn,
 		District:   e.District,
 		LibName:    e.targetLib.libName,
@@ -176,7 +175,7 @@ func (e *education) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 			bookStatus = fmt.Sprintf("%s(%s)", bookStatus, bookBorrowDate)
 		}
 
-		Books = append(Books, model.LibBookStatus{
+		Books = append(Books, LibBookStatus{
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    "서울특별시교육청" + LibName,

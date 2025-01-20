@@ -40,7 +40,7 @@ func TestBookRequest(t *testing.T) {
 		}
 		req, _ := http.NewRequest(http.MethodPost, "/books/detail", bytes.NewReader(b))
 		resp := httptest.NewRecorder()
-		HandleBookRequests(resp, req, pool)
+		HandleBookDetailRequests(resp, req, pool)
 
 		if resp.Result().StatusCode != 200 {
 			t.Fatal("failed to respond")

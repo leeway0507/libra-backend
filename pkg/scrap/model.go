@@ -1,4 +1,4 @@
-package model
+package scrap
 
 import "io"
 

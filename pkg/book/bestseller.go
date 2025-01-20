@@ -127,15 +127,11 @@ func (S *bestSeller) GetBestSellerDefault() AladinResponse {
 	return S.GetBestSeller("0")
 }
 func (S *bestSeller) GetBestSeller(categoryId string) AladinResponse {
-	// year := strconv.Itoa(time.Now().Year())
-	// month := strconv.Itoa(int(time.Now().Month()))
-	// week := strconv.Itoa(getWeekOfMonth(time.Now()))
-
 	pageNum := []string{"1", "2", "3", "4"}
 
 	var result []AladinItem
 	for _, p := range pageNum {
-		b, err := S.RequestBestSeller(p, categoryId, "0", "0", "0")
+		b, err := S.FetchBestSellers(p, categoryId, "0", "0", "0")
 		if err != nil {
 			log.Println(err)
 		}
@@ -150,7 +146,7 @@ func (S *bestSeller) GetBestSeller(categoryId string) AladinResponse {
 	}
 }
 
-func (S *bestSeller) RequestBestSeller(pageNum, categoryId, year, month, week string) (io.ReadCloser, error) {
+func (S *bestSeller) FetchBestSellers(pageNum, categoryId, year, month, week string) (io.ReadCloser, error) {
 	rawUrl, err := url.Parse(aladinItemUrl)
 	if err != nil {
 		return nil, err
@@ -198,6 +194,7 @@ func (S *bestSeller) Parse(body io.ReadCloser) []AladinItem {
 func (S *bestSeller) GetCategory() *[]BookCat {
 	return cat
 }
+
 func (S *bestSeller) FindKorName(value string) string {
 	for _, c := range *cat {
 		if c.value == value {
@@ -206,6 +203,7 @@ func (S *bestSeller) FindKorName(value string) string {
 	}
 	return ""
 }
+
 func (S *bestSeller) GetCatName() []string {
 	var result []string
 	for _, c := range *cat {
@@ -213,26 +211,3 @@ func (S *bestSeller) GetCatName() []string {
 	}
 	return result
 }
-
-// func getWeekOfMonth(t time.Time) int {
-// 	// 이번 달의 첫 번째 날 가져오기
-// 	firstDayOfMonth := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
-// 	// 첫 번째 날의 요일 (0: 일요일, 1: 월요일, ...)
-// 	firstDayWeekday := int(firstDayOfMonth.Weekday())
-// 	// 오늘의 일(day)
-// 	day := t.Day()
-
-// 	// 이번 달 첫 번째 주의 남은 일수 계산
-// 	remainingDays := 7 - firstDayWeekday
-// 	if remainingDays <= 0 {
-// 		remainingDays += 7
-// 	}
-
-// 	// 오늘이 첫 번째 주에 포함되는지 확인
-// 	if day <= remainingDays {
-// 		return 1
-// 	}
-
-// 	// 첫 번째 주 이후의 주 계산
-// 	return (day-remainingDays-1)/7 + 2
-// }

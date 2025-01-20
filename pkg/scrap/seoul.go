@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"libra-backend/model"
 	"log"
 	"net/http"
 	"net/url"
@@ -52,12 +51,12 @@ var (
 )
 
 type seoul struct {
-	model.Lib
+	Lib
 }
 
-func NewSeoul(isbn, district, libname string) model.BookStatusScraper {
+func NewSeoul(isbn, district, libname string) BookStatusScraper {
 	return &seoul{
-		Lib: model.Lib{
+		Lib: Lib{
 			Isbn:     isbn,
 			District: district,
 			LibName:  libname,
@@ -111,13 +110,13 @@ func (e *seoul) Request() (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func (e *seoul) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
+func (e *seoul) ExtractData(body io.ReadCloser) (*[]LibBookStatus, error) {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, err
 	}
-	var Books []model.LibBookStatus
+	var Books []LibBookStatus
 	book := doc.Find("ul.book-list > li div.info")
 
 	var bookStatus string
@@ -135,7 +134,7 @@ func (e *seoul) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) 
 
 	classNum := book.Find("p:nth-child(4)").Text()
 
-	Books = append(Books, model.LibBookStatus{
+	Books = append(Books, LibBookStatus{
 		Isbn:       e.Isbn,
 		District:   e.District,
 		LibName:    e.LibName,

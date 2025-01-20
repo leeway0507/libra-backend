@@ -1,12 +1,10 @@
 package scrap
 
-import "libra-backend/model"
-
 var (
 	USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
-func GetBorrowScraperInstance(libCode string) func(isbn string) model.BookStatusScraper {
+func GetBorrowScraperInstance(libCode string) func(isbn string) BookStatusScraper {
 	libInfo, isExist := LibCodeMap[libCode]
 	if !isExist {
 		return nil
@@ -15,12 +13,12 @@ func GetBorrowScraperInstance(libCode string) func(isbn string) model.BookStatus
 	if !isExist {
 		return nil
 	}
-	return func(isbn string) model.BookStatusScraper {
+	return func(isbn string) BookStatusScraper {
 		return scraperInstance(isbn, libInfo.District, libInfo.LibName)
 	}
 }
 
-type ScraperInstance = func(isbn, district, libname string) model.BookStatusScraper
+type ScraperInstance = func(isbn, district, libname string) BookStatusScraper
 
 var InstanceMap = map[string]ScraperInstance{
 	"강서구": NewKangSeo,

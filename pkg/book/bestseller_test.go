@@ -17,7 +17,7 @@ func TestBestSeller(t *testing.T) {
 	cfg := config.GetEnvConfig()
 	b := NewBestSeller(cfg.ALADIN_API_KEY)
 	t.Run("aladin bestseller", func(t *testing.T) {
-		b.RequestBestSeller("1", "0", "2025", "1", "1")
+		b.FetchBestSellers("1", "0", "2025", "1", "1")
 	})
 	t.Run("aladin response", func(t *testing.T) {
 		f, err := os.Open(filepath.Join(dataPath, "aladin_request.json"))

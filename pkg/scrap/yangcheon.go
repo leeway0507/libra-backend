@@ -3,7 +3,6 @@ package scrap
 import (
 	"fmt"
 	"io"
-	"libra-backend/model"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,12 +12,12 @@ import (
 )
 
 type yangcheon struct {
-	model.Lib
+	Lib
 }
 
-func NewYangcheon(isbn, district, libname string) model.BookStatusScraper {
+func NewYangcheon(isbn, district, libname string) BookStatusScraper {
 	return &yangcheon{
-		Lib: model.Lib{
+		Lib: Lib{
 			Isbn:     isbn,
 			District: district,
 			LibName:  libname,
@@ -49,13 +48,13 @@ func (e *yangcheon) Request() (io.ReadCloser, error) {
 	return r.Body, nil
 }
 
-func (e *yangcheon) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, error) {
+func (e *yangcheon) ExtractData(body io.ReadCloser) (*[]LibBookStatus, error) {
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, err
 	}
-	var Books []model.LibBookStatus
+	var Books []LibBookStatus
 	doc.Find("div.book_area").Each(func(i int, s *goquery.Selection) {
 		libName := strings.Replace(s.Find(" .tit span").Text(), "[", "", 1)
 		libName = strings.Replace(libName, "]", "", 1)
@@ -63,7 +62,7 @@ func (e *yangcheon) ExtractData(body io.ReadCloser) (*[]model.LibBookStatus, err
 		bookStatusRaw := strings.ReplaceAll(s.Find(".book_status").Text(), "\t", "")
 		bookStatus := strings.ReplaceAll(bookStatusRaw, "\n", "")
 
-		Books = append(Books, model.LibBookStatus{
+		Books = append(Books, LibBookStatus{
 			Isbn:       e.Isbn,
 			District:   e.District,
 			LibName:    libName,
