@@ -10,10 +10,10 @@ import (
 	"libra-backend/pkg/search"
 	"log"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pgvector/pgvector-go"
 )
@@ -24,16 +24,15 @@ func GetSearchRouter(pool *pgxpool.Pool) (*http.ServeMux, func() int) {
 	kiwi.Version()
 	log.Println("tokenizer path :", cfg.TOKENIZER_PATH)
 	kb := kiwi.NewBuilder(cfg.TOKENIZER_PATH, 1, kiwi.KIWI_BUILD_INTEGRATE_ALLOMORPH)
-	k := kb.Build()
 
 	searchRouter := http.NewServeMux()
 	searchRouter.HandleFunc("GET /normal", func(w http.ResponseWriter, r *http.Request) {
-		HandleSearchQuery(w, r, pool, k)
+		HandleSearchQuery(w, r, pool, kb)
 	})
-	return searchRouter, k.Close
+	return searchRouter, kb.Close
 }
 
-func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, k *kiwi.Kiwi) {
+func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Pool, kb *kiwi.KiwiBuilder) {
 	ctx := context.Background()
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
@@ -52,6 +51,7 @@ func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Poo
 		http.Error(w, "no query found", http.StatusBadRequest)
 		return
 	}
+	keyword = search.GetSpacingCheck(keyword)
 
 	libCode := r.URL.Query().Get("libCode")
 	if libCode == "" {
@@ -68,20 +68,9 @@ func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Poo
 	}
 
 	start := time.Now()
-	keywords, err := k.Analyze_Noun(keyword, 1, kiwi.KIWI_MATCH_ALL)
-	if err != nil {
-		log.Printf("parseError: %#+v\n", err)
-	}
-
-	keywords = append(keywords, keyword)
-	log.Printf("keywords: %#+v\n", keywords)
-	var keywordForLike []string
-	for _, v := range keywords {
-		keywordForLike = append(keywordForLike, "%"+v+"%")
-	}
 	data, err := searchQuery.DBQuery().SearchFromBooks(ctx, sqlc.SearchFromBooksParams{
 		Embedding: pgvector.NewVector(QueryResp.Embedding),
-		Keywords:  keywordForLike,
+		Keyword:   pgtype.Text{String: keyword, Valid: true},
 		LibCodes:  strings.Split(libCode, ","),
 	})
 	end := time.Now()
@@ -92,10 +81,6 @@ func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Poo
 		http.Error(w, "db data encoding error", http.StatusInternalServerError)
 		return
 	}
-	// sort
-	sort.Slice(data, func(i, j int) bool {
-		return float64(data[i].Score) < float64(data[j].Score)
-	})
 
 	response, err := json.Marshal(data)
 	if err != nil {

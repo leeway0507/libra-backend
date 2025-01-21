@@ -45,9 +45,11 @@ FROM
     books b
     JOIN BookEmbedding e ON b.isbn = e.isbn
     JOIN FilteredLibsBooks l ON l.isbn = e.isbn
-WHERE b.title ILIKE ANY (@keywords::VARCHAR(100)[])
-LIMIT 500;
-
+WHERE
+    b.title LIKE '%' || @keyword || '%' AND
+    embedding <=> $1 <= 0.8
+ORDER BY embedding <=> $1 ASC
+LIMIT 50;
 
 -- name: ReturnExistIsbns :many
 SELECT isbn, ARRAY_AGG(lib_code)::VARCHAR[] as lib_code
