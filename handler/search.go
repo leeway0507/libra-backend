@@ -51,6 +51,7 @@ func HandleSearchQuery(w http.ResponseWriter, r *http.Request, pool *pgxpool.Poo
 		http.Error(w, "no query found", http.StatusBadRequest)
 		return
 	}
+	keyword = strings.ToLower(keyword)
 	keyword = search.GetSpacingCheck(keyword)
 
 	libCode := r.URL.Query().Get("libCode")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"libra-backend/config"
+	"log"
 	"os"
 
 	"github.com/jackc/pgx/v5"
@@ -18,11 +19,11 @@ func ConnectPGPool(url string, ctx context.Context) *pgxpool.Pool {
 	fmt.Println("trying to connect to db : ", url)
 	config, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	return pool
